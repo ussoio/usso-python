@@ -40,13 +40,16 @@ async def user_data_from_token(token: str, **kwargs) -> UserData | None:
     except jwt.exceptions.InvalidTokenError:
         if kwargs.get("raise_exception"):
             raise USSOException(
-                status_code=HTTP_401_UNAUTHORIZED, error="invalid_token"
+                status_code=HTTP_401_UNAUTHORIZED,
+                error="invalid_token",
             )
         return None
     except Exception as e:
         if kwargs.get("raise_exception"):
             raise USSOException(
-                status_code=HTTP_401_UNAUTHORIZED, error="error", message=str(e)
+                status_code=HTTP_401_UNAUTHORIZED,
+                error="error",
+                message=str(e),
             )
         logger.error(e)
         return None
@@ -69,5 +72,8 @@ async def jwt_access_security(request: Request) -> UserData | None:
         return await user_data_from_token(cookie_token, **kwargs)
 
     if kwargs.get("raise_exception", True):
-        raise USSOException(status_code=HTTP_401_UNAUTHORIZED, error="unauthorized")
+        raise USSOException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            error="unauthorized",
+        )
     return None
