@@ -19,7 +19,7 @@ class UserData(BaseModel):
     token: str | None = None
 
     @property
-    def id(self) -> uuid.UUID:
+    def uid(self) -> uuid.UUID:
         user_id = self.user_id
 
         if user_id.startswith("u_"):
