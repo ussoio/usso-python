@@ -1,9 +1,11 @@
+import uuid
+import base64
 from functools import lru_cache
 from typing import Optional, Tuple
 
 import jwt
 from pydantic import BaseModel
-
+from . import b64tools
 
 class UserData(BaseModel):
     user_id: str
@@ -14,6 +16,17 @@ class UserData(BaseModel):
     jti: str
     data: dict | None = None
     token: str | None = None
+
+    @property
+    def id(self) -> uuid.UUID:
+        user_id = self.user_id
+
+        if user_id.startswith("u_"):
+            user_id = user_id[2:]
+        if 22 <= len(user_id) <= 24:
+            user_id = b64tools.b64_decode_uuid(user_id)
+            
+        return uuid.UUID(user_id)
 
 
 def get_authorization_scheme_param(
