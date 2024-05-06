@@ -29,6 +29,10 @@ class UserData(BaseModel):
 
         return uuid.UUID(user_id)
 
+    @property
+    def b64id(self) -> uuid.UUID:
+        return b64tools.b64_encode_uuid_strip(self.uid)
+
 
 def get_authorization_scheme_param(
     authorization_header_value: Optional[str],
