@@ -1,11 +1,12 @@
 import uuid
-import base64
 from functools import lru_cache
 from typing import Optional, Tuple
 
 import jwt
 from pydantic import BaseModel
+
 from . import b64tools
+
 
 class UserData(BaseModel):
     user_id: str
@@ -25,7 +26,7 @@ class UserData(BaseModel):
             user_id = user_id[2:]
         if 22 <= len(user_id) <= 24:
             user_id = b64tools.b64_decode_uuid(user_id)
-            
+
         return uuid.UUID(user_id)
 
 

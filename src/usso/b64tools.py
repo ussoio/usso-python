@@ -1,5 +1,5 @@
-import uuid
 import base64
+import uuid
 
 
 def b64_encode_uuid(uuid_str):
