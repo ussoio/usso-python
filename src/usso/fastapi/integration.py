@@ -1,7 +1,7 @@
 import logging
 
 import jwt
-from fastapi import Request
+from fastapi import Request, WebSocket
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from usso.core import UserData, get_authorization_scheme_param, get_jwks_keys
@@ -68,6 +68,28 @@ async def jwt_access_security(request: Request) -> UserData | None:
             return await user_data_from_token(token, **kwargs)
 
     cookie_token = request.cookies.get("access_token")
+    if cookie_token:
+        return await user_data_from_token(cookie_token, **kwargs)
+
+    if kwargs.get("raise_exception", True):
+        raise USSOException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            error="unauthorized",
+        )
+    return None
+
+
+async def jwt_access_security_ws(websocket: WebSocket) -> UserData | None:
+    """Return the user associated with a token value."""
+    kwargs = {}
+    authorization = websocket.headers.get("Authorization")
+    if authorization:
+        scheme, _, credentials = get_authorization_scheme_param(authorization)
+        if scheme.lower() == "bearer":
+            token = credentials
+            return await user_data_from_token(token, **kwargs)
+
+    cookie_token = websocket.cookies.get("access_token")
     if cookie_token:
         return await user_data_from_token(cookie_token, **kwargs)
 
