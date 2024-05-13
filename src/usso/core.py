@@ -1,3 +1,5 @@
+import os
+import logging
 import uuid
 from functools import lru_cache
 from typing import Optional, Tuple
@@ -6,6 +8,9 @@ import jwt
 from pydantic import BaseModel
 
 from . import b64tools
+from .exceptions import USSOException
+
+logger = logging.getLogger("usso")
 
 
 class UserData(BaseModel):
@@ -41,6 +46,50 @@ def get_authorization_scheme_param(
         return "", ""
     scheme, _, param = authorization_header_value.partition(" ")
     return scheme, param
+
+
+def user_data_from_token(token: str, **kwargs) -> UserData | None:
+    """Return the user associated with a token value."""
+    try:
+        header = jwt.get_unverified_header(token)
+        jwks_url = header["jwk_url"]
+        assert os.getenv("USSO_JWKS_URL") == jwks_url
+        jwks_client = get_jwks_keys(jwks_url)
+        # , headers=optional_custom_headers)
+        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        decoded = jwt.decode(
+            token,
+            signing_key.key,
+            algorithms=["RS256"],
+        )
+        decoded["token"] = token
+
+    except jwt.exceptions.ExpiredSignatureError:
+        if kwargs.get("raise_exception"):
+            raise USSOException(status_code=401, error="expired_signature")
+        return None
+    except jwt.exceptions.InvalidSignatureError:
+        if kwargs.get("raise_exception"):
+            raise USSOException(status_code=401, error="invalid_signature")
+        return None
+    except jwt.exceptions.InvalidTokenError:
+        if kwargs.get("raise_exception"):
+            raise USSOException(
+                status_code=401,
+                error="invalid_token",
+            )
+        return None
+    except Exception as e:
+        if kwargs.get("raise_exception"):
+            raise USSOException(
+                status_code=401,
+                error="error",
+                message=str(e),
+            )
+        logger.error(e)
+        return None
+
+    return UserData(**decoded)
 
 
 @lru_cache
