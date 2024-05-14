@@ -19,7 +19,7 @@ async def jwt_access_security(request: Request) -> UserData | None:
             token = credentials
             return user_data_from_token(token, **kwargs)
 
-    cookie_token = request.cookies.get("access_token")
+    cookie_token = request.cookies.get("usso_access_token")
     if cookie_token:
         return user_data_from_token(cookie_token, **kwargs)
 
@@ -41,7 +41,7 @@ async def jwt_access_security_ws(websocket: WebSocket) -> UserData | None:
             token = credentials
             return user_data_from_token(token, **kwargs)
 
-    cookie_token = websocket.cookies.get("access_token")
+    cookie_token = websocket.cookies.get("usso_access_token")
     if cookie_token:
         return user_data_from_token(cookie_token, **kwargs)
 
