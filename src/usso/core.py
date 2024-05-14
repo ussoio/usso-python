@@ -39,6 +39,11 @@ class UserData(BaseModel):
         return b64tools.b64_encode_uuid_strip(self.uid)
 
 
+@lru_cache
+def get_jwks_keys(jwks_url):
+    return jwt.PyJWKClient(jwks_url)
+
+
 def get_authorization_scheme_param(
     authorization_header_value: Optional[str],
 ) -> Tuple[str, str]:
@@ -90,8 +95,3 @@ def user_data_from_token(token: str, **kwargs) -> UserData | None:
         return None
 
     return UserData(**decoded)
-
-
-@lru_cache
-def get_jwks_keys(jwks_url):
-    return jwt.PyJWKClient(jwks_url)
