@@ -41,7 +41,9 @@ class UserData(BaseModel):
 
 
 class Usso(metaclass=Singleton):
-    def __init__(self, jwks_url: str):
+    def __init__(self, jwks_url: str|None = None):
+        if jwks_url is None:
+            jwks_url = os.getenv("USSO_JWKS_URL")
         self.jwks_url = jwks_url
 
     @lru_cache
