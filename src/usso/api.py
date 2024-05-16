@@ -65,10 +65,14 @@ class UssoAPI(metaclass=Singleton):
         return self._request(endpoint=f"website/users/{user_id}/credentials/")
 
     def get_user_by_credentials(self, credentials: dict):
-        return self._request(endpoint="website/users/credentials/", data=credentials)
+        return self._request(
+            endpoint="website/users/credentials/", data=credentials
+        )
 
     def create_user(self, user_data: dict):
-        return self._request(method="post", endpoint="website/users/", data=user_data)
+        return self._request(
+            method="post", endpoint="website/users/", data=user_data
+        )
 
     def create_user_credentials(self, user_id: str, credentials: dict):
         return self._request(
@@ -82,7 +86,9 @@ class UssoAPI(metaclass=Singleton):
     ):
         if credentials:
             user_data["authenticators"] = [credentials]
-        return self._request(method="post", endpoint="website/users/", data=user_data)
+        return self._request(
+            method="post", endpoint="website/users/", data=user_data
+        )
 
     def get_user_payload(self, user_id: str):
         return self._request(endpoint=f"website/users/{user_id}/payload/")

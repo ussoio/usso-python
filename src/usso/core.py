@@ -41,7 +41,7 @@ class UserData(BaseModel):
 
 
 class Usso(metaclass=Singleton):
-    def __init__(self, jwks_url: str|None = None):
+    def __init__(self, jwks_url: str | None = None):
         if jwks_url is None:
             jwks_url = os.getenv("USSO_JWKS_URL")
         self.jwks_url = jwks_url
@@ -50,7 +50,8 @@ class Usso(metaclass=Singleton):
     def get_jwks_keys(self):
         return jwt.PyJWKClient(self.jwks_url)
 
-    def get_authorization_scheme_param(self,
+    def get_authorization_scheme_param(
+        self,
         authorization_header_value: Optional[str],
     ) -> Tuple[str, str]:
         if not authorization_header_value:
