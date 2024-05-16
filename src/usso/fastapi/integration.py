@@ -14,7 +14,9 @@ async def jwt_access_security(request: Request) -> UserData | None:
     kwargs = {}
     authorization = request.headers.get("Authorization")
     if authorization:
-        scheme, _, credentials = Usso().get_authorization_scheme_param(authorization)
+        scheme, _, credentials = Usso().get_authorization_scheme_param(
+            authorization
+        )
         if scheme.lower() == "bearer":
             token = credentials
             return Usso().user_data_from_token(token, **kwargs)
@@ -36,7 +38,9 @@ async def jwt_access_security_ws(websocket: WebSocket) -> UserData | None:
     kwargs = {}
     authorization = websocket.headers.get("Authorization")
     if authorization:
-        scheme, _, credentials = Usso().get_authorization_scheme_param(authorization)
+        scheme, _, credentials = Usso().get_authorization_scheme_param(
+            authorization
+        )
         if scheme.lower() == "bearer":
             token = credentials
             return Usso().user_data_from_token(token, **kwargs)
