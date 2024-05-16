@@ -35,7 +35,7 @@ class UssoAPI(metaclass=Singleton):
         if not self.access_token:
             return False
 
-        user_data = USSO(
+        user_data = Usso(
             jwks_url=f"{self.url}/website/jwks.json?"
         ).user_data_from_token(self.access_token)
         if user_data:
