@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso"
-version = "0.14.0"
+version = "0.15.0"
 description = "A plug-and-play client for integrating universal single sign-on (SSO) with Python frameworks, enabling secure and seamless authentication across microservices."
 readme = "README.md"
 requires-python = ">=3.8"
@@ -33,16 +33,17 @@ dependencies = [
   "peppercorn",  # Example main dependency
   "pydantic>=1.8.2",
   "requests>=2.26.0",
-  "pyjwt[crypto]"
+  "pyjwt[crypto]",
+  "singleton_package"
 ]
 optional-dependencies = {"fastapi" = ["fastapi>=0.65.0", "uvicorn[standard]>=0.13.0"],"django" = ["Django>=3.2"],"dev" = ["check-manifest"],"test" = ["coverage"]}
 
 [project.urls]
-"Homepage" = "https://github.com/usso-io/usso-python"
-"Bug Reports" = "https://github.com/usso-io/usso-python/issues"
-"Funding" = "https://github.com/usso-io/usso-python"
-"Say Thanks!" = "https://github.com/usso-io/usso-python"
-"Source" = "https://github.com/usso-io/usso-python"
+"Homepage" = "https://github.com/ussoio/usso-python"
+"Bug Reports" = "https://github.com/ussoio/usso-python/issues"
+"Funding" = "https://github.com/ussoio/usso-python"
+"Say Thanks!" = "https://github.com/ussoio/usso-python"
+"Source" = "https://github.com/ussoio/usso-python"
 
 [project.scripts]
 usso = "usso:main"
