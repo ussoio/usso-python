@@ -2,6 +2,7 @@ import os
 import unittest
 
 from usso.api import UssoAPI
+from usso.core import UserData, Usso
 
 
 class TestAPI(unittest.TestCase):
@@ -16,10 +17,7 @@ class TestAPI(unittest.TestCase):
         users = usso_api.get_users()
         self.assertIsInstance(users, list)
         for user in users:
-            self.assertIsInstance(user, dict)
-            self.assertIn("user_id", user)
-            self.assertIn("username", user)
-            self.assertIn("email", user)
+            self.assertIsInstance(user, UserData)
         return users
 
     def test_get_user(self):
@@ -29,39 +27,30 @@ class TestAPI(unittest.TestCase):
         user = users[0]
         usso_api = self.get_usso()
         user = usso_api.get_user(user["user_id"])
-        self.assertIsInstance(user, dict)
-        self.assertIn("user_id", user)
-        self.assertIn("username", user)
-        self.assertIn("email", user)
+        self.assertIsInstance(user, UserData)
         return user
-
-    def test_get_user_credentials(self):
-        users = self.test_get_users()
-        if len(users) == 0:
-            self.skipTest("No users found")
-        user = users[0]
-        usso_api = self.get_usso()
-        credentials = usso_api.get_user_credentials(user["user_id"])
-        self.assertIsInstance(credentials, list)
-        for credential in credentials:
-            self.assertIsInstance(credential, dict)
-            self.assertIn("credential_id", credential)
-            self.assertIn("type", credential)
-            self.assertIn("created_at", credential)
-        return credentials
 
     def test_get_user_by_credentials(self):
-        credentials = self.test_get_user_credentials()
-        if len(credentials) == 0:
-            self.skipTest("No credentials found")
-        credential = credentials[0]
         usso_api = self.get_usso()
-        user = usso_api.get_user_by_credentials(credential)
-        self.assertIsInstance(user, dict)
-        self.assertIn("user_id", user)
-        self.assertIn("username", user)
-        self.assertIn("email", user)
-        return user
+        users = usso_api._request(endpoint="website/users")
+        if len(users) == 0:
+            self.skipTest("No users found")
+        for user in users:
+            for auth in user['authenticators']:
+                cred = {
+                    "auth_method": auth["auth_method"],
+                    "representor": auth["representor"],
+                }   
+                user = usso_api.get_user_by_credentials(cred)
+                self.assertIsInstance(user, UserData)
+                return user
+
+    def test_create_user_by_credentials(self):
+        usso_api = self.get_usso()
+        telegram_id = os.getenv("TELEGRAM_ID")
+        cred = {"auth_method": "telegram", "representor": telegram_id}
+        usso_api.create_user_by_credentials(credentials=cred)
+
 
 if __name__ == "__main__":
     unittest.main()

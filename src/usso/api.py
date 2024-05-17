@@ -88,14 +88,6 @@ class UssoAPI(metaclass=Singleton):
             )
         )
 
-    def get_user_credentials(self, user_id: str, **kwargs) -> UserData:
-        return UserData(
-            **self._request(
-                endpoint=f"website/users/{user_id}/credentials",
-                **kwargs,
-            )
-        )
-
     def get_user_by_credentials(self, credentials: dict, **kwargs) -> UserData:
         return UserData(
             **self._request(
@@ -133,7 +125,7 @@ class UssoAPI(metaclass=Singleton):
         credentials: dict | None = None,
         **kwargs,
     ) -> UserData:
-
+        user_data = user_data or {}
         if credentials:
             user_data["authenticators"] = [credentials]
         return UserData(
