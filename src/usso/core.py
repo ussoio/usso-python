@@ -1,12 +1,12 @@
-import os
 import logging
+import os
 import uuid
 from functools import lru_cache
 from typing import Optional, Tuple
-from singleton import Singleton
 
 import jwt
 from pydantic import BaseModel
+from singleton import Singleton
 
 from . import b64tools
 from .exceptions import USSOException

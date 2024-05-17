@@ -1,7 +1,7 @@
 import requests
 from singleton import Singleton
 
-from usso.core import Usso
+from usso.core import UserData, Usso
 
 
 class UssoAPI(metaclass=Singleton):
@@ -11,6 +11,8 @@ class UssoAPI(metaclass=Singleton):
         api_key: str = None,
         refresh_token: str = None,
     ):
+        if url and not url.startswith("http"):
+            url = f"https://{url}"
         self.url = url
         assert (
             api_key or refresh_token
@@ -19,19 +21,22 @@ class UssoAPI(metaclass=Singleton):
         self.refresh_token = refresh_token
         self.access_token = None
 
-    def refresh(self):
+    def _refresh(self):
         if not self.refresh_token:
             return
 
         url = f"{self.url}/auth/refresh"
 
         if self.refresh_token:
-            headers = {"Authorization": f"Bearer {self.refresh_token}"}
+            headers = {
+                "Authorization": f"Bearer {self.refresh_token}",
+                "content-type": "application/json",
+            }
 
         resp = requests.post(url, headers=headers)
         self.access_token = resp.json().get("access_token")
 
-    def _access_valid(self):
+    def _access_valid(self) -> bool:
         if not self.access_token:
             return False
 
@@ -42,67 +47,131 @@ class UssoAPI(metaclass=Singleton):
             return True
         return False
 
-    def _request(self, method="get", endpoint: str = "", data: dict = None):
+    def _request(
+        self,
+        method="get",
+        endpoint: str = "",
+        data: dict = None,
+        **kwargs,
+    ) -> dict:
         url = f"{self.url}/{endpoint}"
-        headers = {}
+        headers = {"content-type": "application/json"}
         if self.api_key:
             headers["x-api-key"] = self.api_key
         elif self.refresh_token:
             if not self.access_token:
-                self.refresh()
+                self._refresh()
             headers["Authorization"] = f"Bearer {self.access_token}"
 
-        resp = requests.request(method, url, headers=headers, json=data)
+        resp = requests.request(
+            method,
+            url,
+            headers=headers,
+            json=data,
+        )
+        if kwargs.get("raise", True):
+            resp.raise_for_status()
         return resp.json()
 
-    def get_users(self):
-        return self._request(endpoint="website/users/")
+    def get_users(self, **kwargs) -> list[UserData]:
+        users_dict = self._request(endpoint="website/users", **kwargs)
 
-    def get_user(self, user_id: str):
-        return self._request(endpoint=f"website/users/{user_id}/")
+        return [
+            UserData(user_id=user.get("uid"), **user) for user in users_dict
+        ]
 
-    def get_user_credentials(self, user_id: str):
-        return self._request(endpoint=f"website/users/{user_id}/credentials/")
-
-    def get_user_by_credentials(self, credentials: dict):
-        return self._request(
-            endpoint="website/users/credentials/", data=credentials
+    def get_user(self, user_id: str, **kwargs) -> UserData:
+        return UserData(
+            **self._request(
+                endpoint=f"website/users/{user_id}",
+                **kwargs,
+            )
         )
 
-    def create_user(self, user_data: dict):
-        return self._request(
-            method="post", endpoint="website/users/", data=user_data
+    def get_user_credentials(self, user_id: str, **kwargs) -> UserData:
+        return UserData(
+            **self._request(
+                endpoint=f"website/users/{user_id}/credentials",
+                **kwargs,
+            )
         )
 
-    def create_user_credentials(self, user_id: str, credentials: dict):
-        return self._request(
-            method="post",
-            endpoint=f"website/users/{user_id}/credentials/",
-            data=credentials,
+    def get_user_by_credentials(self, credentials: dict, **kwargs) -> UserData:
+        return UserData(
+            **self._request(
+                endpoint="website/users/credentials",
+                data=credentials,
+                **kwargs,
+            )
+        )
+
+    def create_user(self, user_data: dict, **kwargs) -> UserData:
+        return UserData(
+            **self._request(
+                method="post",
+                endpoint="website/users",
+                data=user_data,
+                **kwargs,
+            )
+        )
+
+    def create_user_credentials(
+        self, user_id: str, credentials: dict, **kwargs
+    ) -> UserData:
+        return UserData(
+            **self._request(
+                method="post",
+                endpoint=f"website/users/{user_id}/credentials",
+                data=credentials,
+                **kwargs,
+            )
         )
 
     def create_user_by_credentials(
-        self, user_data: dict, credentials: dict | None = None
-    ):
+        self,
+        user_data: dict | None = None,
+        credentials: dict | None = None,
+        **kwargs,
+    ) -> UserData:
+
         if credentials:
             user_data["authenticators"] = [credentials]
-        return self._request(
-            method="post", endpoint="website/users/", data=user_data
+        return UserData(
+            **self._request(
+                method="post",
+                endpoint="website/users",
+                data=user_data,
+                **kwargs,
+            )
         )
 
-    def get_user_payload(self, user_id: str):
-        return self._request(endpoint=f"website/users/{user_id}/payload/")
+    def get_user_payload(self, user_id: str, **kwargs) -> dict:
+        return self._request(
+            endpoint=f"website/users/{user_id}/payload", **kwargs
+        )
 
-    def update_user_payload(self, user_id: str, payload: dict):
+    def update_user_payload(
+        self,
+        user_id: str,
+        payload: dict,
+        **kwargs,
+    ) -> dict:
         return self._request(
             method="patch",
-            endpoint=f"website/users/{user_id}/payload/",
+            endpoint=f"website/users/{user_id}/payload",
             data=payload,
+            **kwargs,
         )
 
-    def set_user_payload(self, user_id: str, payload: dict):
+    def set_user_payload(
+        self,
+        user_id: str,
+        payload: dict,
+        **kwargs,
+    ) -> dict:
         return self._request(
             method="put",
-            endpoint=f"website/users/{user_id}/payload/",
+            endpoint=f"website/users/{user_id}/payload",
             data=payload,
+            **kwargs,
         )
