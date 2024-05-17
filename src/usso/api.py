@@ -83,12 +83,13 @@ class UssoAPI(metaclass=Singleton):
     def get_users(self, **kwargs) -> list[UserData]:
         users_dict = self._request(endpoint="website/users", **kwargs)
 
-        return [
-            UserData(user_id=user.get("uid"), **user) for user in users_dict
-        ]
+        return [UserData(user_id=user.get("uid"), **user) for user in users_dict]
 
     def get_user(self, user_id: str, **kwargs) -> UserData:
-        user_dict = self._request(endpoint=f"website/users/{user_id}", **kwargs)
+        user_dict = self._request(
+            endpoint=f"website/users/{user_id}",
+            **kwargs,
+        )
         return UserData(user_id=user_dict.get("uid"), **user_dict)
 
     def get_user_by_credentials(self, credentials: dict, **kwargs) -> UserData:
@@ -138,9 +139,7 @@ class UssoAPI(metaclass=Singleton):
         return UserData(user_id=user_dict.get("uid"), **user_dict)
 
     def get_user_payload(self, user_id: str, **kwargs) -> dict:
-        return self._request(
-            endpoint=f"website/users/{user_id}/payload", **kwargs
-        )
+        return self._request(endpoint=f"website/users/{user_id}/payload", **kwargs)
 
     def update_user_payload(
         self,
