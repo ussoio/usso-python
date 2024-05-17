@@ -1,7 +1,7 @@
 import unittest
 import uuid
 
-from usso.core import user_data_from_token
+from usso.core import Usso
 from usso.exceptions import USSOException
 
 
@@ -29,7 +29,7 @@ class TestCore(unittest.TestCase):
         valid_token = generate_valid_token()
 
         # Call the user_data_from_token function with the valid token
-        user_data = user_data_from_token(valid_token)
+        user_data = Usso().user_data_from_token(valid_token)
 
         # Assert that the user_data is not None
         self.assertIsNotNone(user_data)
@@ -47,14 +47,14 @@ class TestCore(unittest.TestCase):
         expired_token = generate_expired_token()
 
         # Call the user_data_from_token function with the expired token
-        user_data = user_data_from_token(expired_token)
+        user_data = Usso().user_data_from_token(expired_token)
 
         # Assert that the user_data is None
         self.assertIsNone(user_data)
 
         # Assert that the USSOException is raised with the expected error
         with self.assertRaises(USSOException) as context:
-            user_data_from_token(expired_token, raise_exception=True)
+            Usso().user_data_from_token(expired_token, raise_exception=True)
         self.assertEqual(context.exception.error, "expired_signature")
 
     def test_user_data_from_token_invalid_token(self):
@@ -64,14 +64,14 @@ class TestCore(unittest.TestCase):
         invalid_token = generate_invalid_token()
 
         # Call the user_data_from_token function with the invalid token
-        user_data = user_data_from_token(invalid_token)
+        user_data = Usso().user_data_from_token(invalid_token)
 
         # Assert that the user_data is None
         self.assertIsNone(user_data)
 
         # Assert that the USSOException is raised with the expected error
         with self.assertRaises(USSOException) as context:
-            user_data_from_token(invalid_token, raise_exception=True)
+            Usso().user_data_from_token(invalid_token, raise_exception=True)
         self.assertEqual(context.exception.error, "invalid_signature")
 
     # Add more test cases for other scenarios
