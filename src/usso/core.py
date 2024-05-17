@@ -20,7 +20,7 @@ class UserData(BaseModel):
     phone: str | None = None
     authentication_method: str | None = None
     is_active: bool = False
-    jti: str
+    jti: str | None = None
     data: dict | None = None
     token: str | None = None
 
