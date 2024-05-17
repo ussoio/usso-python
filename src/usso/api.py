@@ -71,7 +71,7 @@ class UssoAPI(metaclass=Singleton):
             headers=headers,
             json=data,
         )
-        if kwargs.get("raise", True):
+        if kwargs.get("raise_exception", True):
             try:
                 resp.raise_for_status()
             except requests.HTTPError as e:
