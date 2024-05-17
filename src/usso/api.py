@@ -1,3 +1,5 @@
+import logging
+
 import requests
 from singleton import Singleton
 
@@ -70,7 +72,12 @@ class UssoAPI(metaclass=Singleton):
             json=data,
         )
         if kwargs.get("raise", True):
-            resp.raise_for_status()
+            try:
+                resp.raise_for_status()
+            except requests.HTTPError as e:
+                logging.error(f"Error: {e}")
+                logging.error(f"Response: {resp.json()}")
+                raise e
         return resp.json()
 
     def get_users(self, **kwargs) -> list[UserData]:
@@ -81,43 +88,37 @@ class UssoAPI(metaclass=Singleton):
         ]
 
     def get_user(self, user_id: str, **kwargs) -> UserData:
-        return UserData(
-            **self._request(
-                endpoint=f"website/users/{user_id}",
-                **kwargs,
-            )
-        )
+        user_dict = self._request(endpoint=f"website/users/{user_id}", **kwargs)
+        return UserData(user_id=user_dict.get("uid"), **user_dict)
 
     def get_user_by_credentials(self, credentials: dict, **kwargs) -> UserData:
-        return UserData(
-            **self._request(
-                endpoint="website/users/credentials",
-                data=credentials,
-                **kwargs,
-            )
+        user_dict = self._request(
+            endpoint="website/users/credentials",
+            data=credentials,
+            **kwargs,
         )
+        return UserData(user_id=user_dict.get("uid"), **user_dict)
 
     def create_user(self, user_data: dict, **kwargs) -> UserData:
-        return UserData(
-            **self._request(
-                method="post",
-                endpoint="website/users",
-                data=user_data,
-                **kwargs,
-            )
+        user_dict = self._request(
+            method="post",
+            endpoint="website/users",
+            data=user_data,
+            **kwargs,
         )
+
+        return UserData(user_id=user_dict.get("uid"), **user_dict)
 
     def create_user_credentials(
         self, user_id: str, credentials: dict, **kwargs
     ) -> UserData:
-        return UserData(
-            **self._request(
-                method="post",
-                endpoint=f"website/users/{user_id}/credentials",
-                data=credentials,
-                **kwargs,
-            )
+        user_dict = self._request(
+            method="post",
+            endpoint=f"website/users/{user_id}/credentials",
+            data=credentials,
+            **kwargs,
         )
+        return UserData(user_id=user_dict.get("uid"), **user_dict)
 
     def create_user_by_credentials(
         self,
@@ -128,14 +129,13 @@ class UssoAPI(metaclass=Singleton):
         user_data = user_data or {}
         if credentials:
             user_data["authenticators"] = [credentials]
-        return UserData(
-            **self._request(
-                method="post",
-                endpoint="website/users",
-                data=user_data,
-                **kwargs,
-            )
+        user_dict = self._request(
+            method="post",
+            endpoint="website/users",
+            data=credentials,
+            **kwargs,
         )
+        return UserData(user_id=user_dict.get("uid"), **user_dict)
 
     def get_user_payload(self, user_id: str, **kwargs) -> dict:
         return self._request(

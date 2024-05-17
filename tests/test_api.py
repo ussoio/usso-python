@@ -2,7 +2,7 @@ import os
 import unittest
 
 from usso.api import UssoAPI
-from usso.core import UserData, Usso
+from usso.core import UserData
 
 
 class TestAPI(unittest.TestCase):
@@ -36,11 +36,11 @@ class TestAPI(unittest.TestCase):
         if len(users) == 0:
             self.skipTest("No users found")
         for user in users:
-            for auth in user['authenticators']:
+            for auth in user["authenticators"]:
                 cred = {
                     "auth_method": auth["auth_method"],
                     "representor": auth["representor"],
-                }   
+                }
                 user = usso_api.get_user_by_credentials(cred)
                 self.assertIsInstance(user, UserData)
                 return user
