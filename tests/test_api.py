@@ -7,7 +7,7 @@ from usso.api import UssoAPI
 class TestAPI(unittest.TestCase):
     def get_usso(self):
         return UssoAPI(
-            url="sso.usso.io",
+            url="https://sso.usso.io",
             api_key=os.getenv("USSO_API_KEY"),
         )
 
