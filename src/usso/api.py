@@ -81,7 +81,7 @@ class UssoAPI(metaclass=Singleton):
                 raise e
             except Exception as e:
                 logging.error(f"Error: {e}")
-                logging.error(f"Response: {resp.text()}")
+                logging.error(f"Response: {resp.text}")
                 raise e
         return resp.json()
 
