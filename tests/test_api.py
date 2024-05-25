@@ -18,17 +18,16 @@ class TestAPI(unittest.TestCase):
         self.assertIsInstance(users, list)
         for user in users:
             self.assertIsInstance(user, UserData)
-        return users
 
     def test_get_user(self):
-        users = self.test_get_users()
+        usso_api = self.get_usso()
+        users = usso_api.get_users()
         if len(users) == 0:
             self.skipTest("No users found")
         user = users[0]
         usso_api = self.get_usso()
-        user = usso_api.get_user(user["user_id"])
+        user = usso_api.get_user(user.user_id)
         self.assertIsInstance(user, UserData)
-        return user
 
     def test_get_user_by_credentials(self):
         usso_api = self.get_usso()
@@ -43,13 +42,19 @@ class TestAPI(unittest.TestCase):
                 }
                 user = usso_api.get_user_by_credentials(cred)
                 self.assertIsInstance(user, UserData)
-                return user
 
     def test_create_user_by_credentials(self):
+        import requests
+
         usso_api = self.get_usso()
         telegram_id = os.getenv("TELEGRAM_ID")
         cred = {"auth_method": "telegram", "representor": telegram_id}
-        usso_api.create_user_by_credentials(credentials=cred)
+        try:
+            usso_api.create_user_by_credentials(credentials=cred)
+        except requests.HTTPError as e:
+            if e.response.status_code == 400:
+                if e.response.json().get("error") == "already_exists":
+                    self.skipTest("Credential already exists")
 
 
 if __name__ == "__main__":

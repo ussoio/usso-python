@@ -1,4 +1,6 @@
+from datetime import datetime
 import requests
+import jwt
 
 
 class UssoSession:
@@ -20,6 +22,10 @@ class UssoSession:
         return response.json()
 
     def get_session(self):
+        decoded_token = jwt.decode(self.access_token, options={"verify_signature": False})
+        exp = datetime.fromtimestamp(decoded_token.get("exp"))
+        if exp < datetime.now():
+            self.access_token = None
         if not self.access_token:
             self.access_token = self._refresh()["access_token"]
             self.session.headers.update(
