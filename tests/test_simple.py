@@ -8,9 +8,9 @@ import unittest
 class TestSimple(unittest.TestCase):
     def test_import(self):
         import usso
-        
+
         usso.Usso()
-        usso.UserData(user_id='123')
+        usso.UserData(user_id="123")
 
 
 if __name__ == "__main__":

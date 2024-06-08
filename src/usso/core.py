@@ -79,40 +79,40 @@ class Usso(metaclass=Singleton):
             decoded["token"] = token
             return UserData(**decoded)
         except jwt.exceptions.ExpiredSignatureError:
-            if kwargs.get("raise_exception"):
+            if kwargs.get("raise_exception", True):
                 raise USSOException(status_code=401, error="expired_signature")
         except jwt.exceptions.InvalidSignatureError:
-            if kwargs.get("raise_exception"):
+            if kwargs.get("raise_exception", True):
                 raise USSOException(status_code=401, error="invalid_signature")
         except jwt.exceptions.InvalidAlgorithmError:
-            if kwargs.get("raise_exception"):
+            if kwargs.get("raise_exception", True):
                 raise USSOException(
                     status_code=401,
                     error="invalid_algorithm",
                 )
         except jwt.exceptions.InvalidIssuedAtError:
-            if kwargs.get("raise_exception"):
+            if kwargs.get("raise_exception", True):
                 raise USSOException(
                     status_code=401,
                     error="invalid_issued_at",
                 )
         except jwt.exceptions.InvalidTokenError:
-            if kwargs.get("raise_exception"):
+            if kwargs.get("raise_exception", True):
                 raise USSOException(
                     status_code=401,
                     error="invalid_token",
                 )
         except jwt.exceptions.InvalidKeyError:
-            if kwargs.get("raise_exception"):
+            if kwargs.get("raise_exception", True):
                 raise USSOException(
                     status_code=401,
                     error="invalid_key",
                 )
         except USSOException as e:
-            if kwargs.get("raise_exception"):
+            if kwargs.get("raise_exception", True):
                 raise e
         except Exception as e:
-            if kwargs.get("raise_exception"):
+            if kwargs.get("raise_exception", True):
                 raise USSOException(
                     status_code=401,
                     error="error",

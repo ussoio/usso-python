@@ -1,6 +1,7 @@
 from datetime import datetime
-import requests
+
 import jwt
+import requests
 
 
 class UssoSession:
@@ -23,7 +24,9 @@ class UssoSession:
 
     def get_session(self):
         if self.access_token:
-            decoded_token = jwt.decode(self.access_token, options={"verify_signature": False})
+            decoded_token = jwt.decode(
+                self.access_token, options={"verify_signature": False}
+            )
             exp = datetime.fromtimestamp(decoded_token.get("exp"))
             if exp < datetime.now():
                 self.access_token = None
