@@ -75,7 +75,7 @@ class AsyncUssoAPI(metaclass=Singleton):
                 json=data,
             ) as resp:
                 try:
-                    resp_json = resp.json()
+                    resp_json = await resp.json()
                     resp.raise_for_status()
                 except aiohttp.ClientError as e:
                     logging.error(f"Error: {e}")
