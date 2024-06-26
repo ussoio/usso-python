@@ -48,7 +48,12 @@ class Usso(metaclass=Singleton):
 
     @lru_cache
     def get_jwks_keys(self):
-        return jwt.PyJWKClient(self.jwks_url)
+        return jwt.PyJWKClient(
+            self.jwks_url,
+            headers={
+                "User-Agent": "usso-python",
+            },
+        )
 
     def get_authorization_scheme_param(
         self,
