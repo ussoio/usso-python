@@ -8,49 +8,48 @@ from usso.exceptions import USSOException
 logger = logging.getLogger("usso")
 
 
-async def jwt_access_security(request: Request) -> UserData | None:
-    """Return the user associated with a token value."""
-    kwargs = {}
+def get_request_token(request: Request | WebSocket) -> UserData | None:
     authorization = request.headers.get("Authorization")
     if authorization:
-        scheme, credentials = Usso().get_authorization_scheme_param(
-            authorization
-        )
+        scheme, credentials = Usso().get_authorization_scheme_param(authorization)
         if scheme.lower() == "bearer":
             token = credentials
-            return Usso().user_data_from_token(token, **kwargs)
 
-    cookie_token = request.cookies.get("usso_access_token")
-    if cookie_token:
-        return Usso().user_data_from_token(cookie_token, **kwargs)
+    else:
+        cookie_token = request.cookies.get("usso_access_token")
+        if cookie_token:
+            token = cookie_token
 
-    if kwargs.get("raise_exception", True):
+    return token
+
+
+def jwt_access_security_None(request: Request) -> UserData | None:
+    """Return the user associated with a token value."""
+    token = get_request_token(request)
+    if not token:
+        return None
+    return Usso().user_data_from_token(token, raise_exception=False)
+    
+
+async def jwt_access_security(request: Request) -> UserData | None:
+    """Return the user associated with a token value."""
+    token = get_request_token(request)
+    if not token:
         raise USSOException(
             status_code=HTTP_401_UNAUTHORIZED,
             error="unauthorized",
         )
-    return None
+
+    return Usso().user_data_from_token(token)
 
 
 async def jwt_access_security_ws(websocket: WebSocket) -> UserData | None:
     """Return the user associated with a token value."""
-    kwargs = {}
-    authorization = websocket.headers.get("Authorization")
-    if authorization:
-        scheme, credentials = Usso().get_authorization_scheme_param(
-            authorization
-        )
-        if scheme.lower() == "bearer":
-            token = credentials
-            return Usso().user_data_from_token(token, **kwargs)
-
-    cookie_token = websocket.cookies.get("usso_access_token")
-    if cookie_token:
-        return Usso().user_data_from_token(cookie_token, **kwargs)
-
-    if kwargs.get("raise_exception", True):
+    token = get_request_token(websocket)
+    if not token:
         raise USSOException(
             status_code=HTTP_401_UNAUTHORIZED,
             error="unauthorized",
         )
-    return None
+
+    return Usso().user_data_from_token(token)

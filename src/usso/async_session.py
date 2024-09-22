@@ -1,7 +1,7 @@
 from datetime import datetime
-import jwt
+
 import aiohttp
-import asyncio
+import jwt
 
 
 class AsyncUssoSession(aiohttp.ClientSession):
@@ -46,4 +46,3 @@ class AsyncUssoSession(aiohttp.ClientSession):
 
     async def __aexit__(self, exc_type, exc_value, traceback):
         await self.close()
-

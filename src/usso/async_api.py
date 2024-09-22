@@ -39,7 +39,7 @@ class AsyncUssoAPI(metaclass=Singleton):
                 if kwargs.get("raise_exception", True):
                     resp.raise_for_status()
                 self.access_token = (await resp.json()).get("access_token")
-        
+
     def _access_valid(self) -> bool:
         if not self.access_token:
             return False
@@ -86,13 +86,11 @@ class AsyncUssoAPI(metaclass=Singleton):
                     logging.error(f"Response: {resp.text}")
                     raise e
                 return await resp.json()
-        
+
     async def get_users(self, **kwargs) -> list[UserData]:
         users_dict = await self._request(endpoint="website/users", **kwargs)
 
-        return [
-            UserData(user_id=user.get("uid"), **user) for user in users_dict
-        ]
+        return [UserData(user_id=user.get("uid"), **user) for user in users_dict]
 
     async def get_user(self, user_id: str, **kwargs) -> UserData:
         user_dict = await self._request(

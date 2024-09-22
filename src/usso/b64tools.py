@@ -3,9 +3,7 @@ import uuid
 
 
 def b64_encode_uuid(uuid_str: uuid.UUID | str):
-    uuid_UUID = (
-        uuid_str if isinstance(uuid_str, uuid.UUID) else uuid.UUID(uuid_str)
-    )
+    uuid_UUID = uuid_str if isinstance(uuid_str, uuid.UUID) else uuid.UUID(uuid_str)
     uuid_bytes = uuid_UUID.bytes
     encoded_uuid = base64.urlsafe_b64encode(uuid_bytes).decode()
     return encoded_uuid
