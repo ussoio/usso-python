@@ -19,18 +19,13 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         Middleware to authenticate users by JWT token and create or return a user in the database.
         """
         try:
-            logger.debug("Processing request in USSO authentication middleware")
+            if request.user.is_authenticated:
+                return
 
-            # Extract and verify JWT from Authorization header or cookies
-            user_data = self.jwt_access_security(request)
-
+            user_data = self.jwt_access_security_none(request)
             if user_data:
-                # Check database for the user or create a new one
                 user = self.get_or_create_user(user_data)
-                # Attach the user to the request
                 request.user = user
-            else:
-                return None
         except USSOException as e:
             # Handle any errors raised by USSO authentication
             return JsonResponse({"error": str(e)}, status=401)
@@ -45,6 +40,15 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
                 return credentials  # Bearer token
 
         return request.COOKIES.get("usso_access_token")
+
+    def jwt_access_security_none(self, request: HttpRequest) -> UserData | None:
+        """Return the user associated with a token value."""
+        token = self.get_request_token(request)
+        if not token:
+            return None
+        return Usso(jwks_url=settings.USSO_JWK_URL).user_data_from_token(
+            token, raise_exception=False
+        )
 
     def jwt_access_security(self, request: HttpRequest) -> UserData | None:
         """Return the user associated with a token value."""
