@@ -19,13 +19,14 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         Middleware to authenticate users by JWT token and create or return a user in the database.
         """
         try:
-            if request.user.is_authenticated:
+            if hasattr(request, "user") and request.user.is_authenticated:
                 return
 
             user_data = self.jwt_access_security_none(request)
             if user_data:
                 user = self.get_or_create_user(user_data)
                 request.user = user
+                request._dont_enforce_csrf_checks = True
         except USSOException as e:
             # Handle any errors raised by USSO authentication
             return JsonResponse({"error": str(e)}, status=401)
