@@ -55,7 +55,7 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         if not token:
             raise USSOException(
                 status_code=401,
-                error="Unauthorized",
+                error="unauthorized",
             )
 
         # Get user data from the token
