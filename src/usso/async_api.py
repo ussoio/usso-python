@@ -2,6 +2,7 @@ import logging
 
 import aiohttp
 from singleton import Singleton
+
 from usso.core import UserData, Usso
 
 

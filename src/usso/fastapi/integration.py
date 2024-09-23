@@ -2,6 +2,7 @@ import logging
 
 from fastapi import Request, WebSocket
 from starlette.status import HTTP_401_UNAUTHORIZED
+
 from usso.core import UserData, Usso
 from usso.exceptions import USSOException
 
@@ -29,9 +30,9 @@ def jwt_access_security_None(request: Request) -> UserData | None:
     if not token:
         return None
     return Usso().user_data_from_token(token, raise_exception=False)
-    
 
-async def jwt_access_security(request: Request) -> UserData | None:
+
+def jwt_access_security(request: Request) -> UserData | None:
     """Return the user associated with a token value."""
     token = get_request_token(request)
     if not token:
@@ -43,7 +44,7 @@ async def jwt_access_security(request: Request) -> UserData | None:
     return Usso().user_data_from_token(token)
 
 
-async def jwt_access_security_ws(websocket: WebSocket) -> UserData | None:
+def jwt_access_security_ws(websocket: WebSocket) -> UserData | None:
     """Return the user associated with a token value."""
     token = get_request_token(websocket)
     if not token:
