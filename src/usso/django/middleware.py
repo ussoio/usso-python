@@ -30,10 +30,7 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
                 # Attach the user to the request
                 request.user = user
             else:
-                return JsonResponse(
-                    {"error": "Authentication failed: No valid JWT token provided."},
-                    status=401,
-                )
+                return None
         except USSOException as e:
             # Handle any errors raised by USSO authentication
             return JsonResponse({"error": str(e)}, status=401)
