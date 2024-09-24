@@ -11,6 +11,8 @@ logger = logging.getLogger("usso")
 
 def get_request_token(request: Request | WebSocket) -> UserData | None:
     authorization = request.headers.get("Authorization")
+    token = None
+    
     if authorization:
         scheme, credentials = Usso().get_authorization_scheme_param(authorization)
         if scheme.lower() == "bearer":
