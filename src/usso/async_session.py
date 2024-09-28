@@ -51,3 +51,36 @@ class AsyncUssoSession:
     async def __aexit__(self, exc_type, exc_value, traceback):
         if self.session:
             await self.session.close()  # Close the session properly
+
+    async def _request(self, method: str, url: str, **kwargs):
+        await self._ensure_valid_token()  # Ensure valid token before any request
+        return await self.session.request(method, url, **kwargs)
+
+    async def get(self, url: str, **kwargs):
+        return await self._request("GET", url, **kwargs)
+
+    async def post(self, url: str, **kwargs):
+        return await self._request("POST", url, **kwargs)
+
+    async def put(self, url: str, **kwargs):
+        return await self._request("PUT", url, **kwargs)
+
+    async def patch(self, url: str, **kwargs):
+        return await self._request("PATCH", url, **kwargs)
+
+    async def delete(self, url: str, **kwargs):
+        return await self._request("DELETE", url, **kwargs)
+
+    async def head(self, url: str, **kwargs):
+        return await self._request("HEAD", url, **kwargs)
+
+    async def options(self, url: str, **kwargs):
+        return await self._request("OPTIONS", url, **kwargs)
+    
+    async def close(self):
+        await self.session.close()
+        self.session = None
+
+    async def __del__(self):
+        if self.session:
+            await self.session.close()
