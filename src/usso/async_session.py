@@ -1,6 +1,7 @@
-from datetime import datetime
+from contextlib import asynccontextmanager
 import aiohttp
 import jwt
+from datetime import datetime
 
 
 class AsyncUssoSession:
@@ -52,35 +53,33 @@ class AsyncUssoSession:
         if self.session:
             await self.session.close()  # Close the session properly
 
+    @asynccontextmanager
     async def _request(self, method: str, url: str, **kwargs):
         await self._ensure_valid_token()  # Ensure valid token before any request
-        return await self.session.request(method, url, **kwargs)
+        async with self.session.request(method, url, **kwargs) as response:
+            yield response
 
-    async def get(self, url: str, **kwargs):
-        return await self._request("GET", url, **kwargs)
+    def get(self, url: str, **kwargs):
+        return self._request("GET", url, **kwargs)
 
-    async def post(self, url: str, **kwargs):
-        return await self._request("POST", url, **kwargs)
+    def post(self, url: str, **kwargs):
+        return self._request("POST", url, **kwargs)
 
-    async def put(self, url: str, **kwargs):
-        return await self._request("PUT", url, **kwargs)
+    def put(self, url: str, **kwargs):
+        return self._request("PUT", url, **kwargs)
 
-    async def patch(self, url: str, **kwargs):
-        return await self._request("PATCH", url, **kwargs)
+    def patch(self, url: str, **kwargs):
+        return self._request("PATCH", url, **kwargs)
 
-    async def delete(self, url: str, **kwargs):
-        return await self._request("DELETE", url, **kwargs)
+    def delete(self, url: str, **kwargs):
+        return self._request("DELETE", url, **kwargs)
 
-    async def head(self, url: str, **kwargs):
-        return await self._request("HEAD", url, **kwargs)
+    def head(self, url: str, **kwargs):
+        return self._request("HEAD", url, **kwargs)
 
-    async def options(self, url: str, **kwargs):
-        return await self._request("OPTIONS", url, **kwargs)
-    
+    def options(self, url: str, **kwargs):
+        return self._request("OPTIONS", url, **kwargs)
+
     async def close(self):
         await self.session.close()
         self.session = None
-
-    async def __del__(self):
-        if self.session:
-            await self.session.close()
