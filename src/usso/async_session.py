@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
+from datetime import datetime
+
 import aiohttp
 import jwt
-from datetime import datetime
 
 
 class AsyncUssoSession:
