@@ -1,20 +1,50 @@
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import aiohttp
 import jwt
 
 
 class AsyncUssoSession:
-    def __init__(self, sso_refresh_url: str, refresh_token: str | None = None):
+    def __init__(
+        self,
+        sso_refresh_url: str,
+        refresh_token: str | None = None,
+        api_key: str | None = None,
+    ):
         self.sso_refresh_url = sso_refresh_url
-        self.refresh_token = refresh_token
+        self._refresh_token = refresh_token
         self.access_token = None
         self.session = None  # This will hold the aiohttp session
+        self.api_key = api_key
+
+    @property
+    def refresh_token(self):
+        decoded_token = jwt.decode(
+            self._refresh_token, options={"verify_signature": False}
+        )
+        exp = decoded_token.get("exp", datetime.now() + timedelta(days=1))
+        if exp < datetime.now():
+            self._refresh_token = None
+
+        return self._refresh_token
+
+    async def _refresh_api(self):
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"{self.sso_refresh_url}/api",
+                headers={"x-api-key": self.api_key},
+            ) as response:
+                response.raise_for_status()
+                data: dict = await response.json()
+                self._refresh_token = data.get("token", {}).get("refresh_token")
 
     async def _refresh(self):
-        if not self.refresh_token:
+        if not self.refresh_token and not self.api_key:
             raise ValueError("Refresh token not provided or invalid.")
+
+        if self.api_key and not self.refresh_token:
+            self._refresh_api()
 
         async with aiohttp.ClientSession() as session:
             async with session.post(

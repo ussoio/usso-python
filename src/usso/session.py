@@ -1,19 +1,49 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import jwt
 import requests
 
 
 class UssoSession:
-    def __init__(self, sso_refresh_url: str, refresh_token: str | None = None):
+
+    def __init__(
+        self,
+        sso_refresh_url: str,
+        refresh_token: str | None = None,
+        api_key: str | None = None,
+    ):
         self.sso_refresh_url = sso_refresh_url
-        self.refresh_token = refresh_token
+        self._refresh_token = refresh_token
         self.session = requests.Session()
         self.access_token = None
+        self.api_key = api_key
+
+    @property
+    def refresh_token(self):
+        decoded_token = jwt.decode(
+            self._refresh_token, options={"verify_signature": False}
+        )
+        exp = decoded_token.get("exp", datetime.now() + timedelta(days=1))
+        if exp < datetime.now():
+            self._refresh_token = None
+
+        return self._refresh_token
+
+    def _refresh_api(self):
+        response = requests.get(
+            f"{self.sso_refresh_url}/api",
+            headers={"x-api-key": self.api_key},
+        )
+        response.raise_for_status()
+        data = response.json()
+        self._refresh_token = data.get("token", {}).get("refresh_token")
 
     def _refresh(self):
-        if not self.refresh_token:
+        if not self.refresh_token and not self.api_key:
             return
+        
+        if self.api_key and not self.refresh_token:
+            self._refresh_api()
 
         response = requests.post(
             self.sso_refresh_url,

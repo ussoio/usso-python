@@ -73,15 +73,11 @@ class Usso:
         scheme, _, param = authorization_header_value.partition(" ")
         return scheme, param
 
-    def user_data_from_token(self, token: str, **kwargs) -> UserData | None:
-        """Return the user associated with a token value."""
+    def decode_token(self, key, token: str, **kwargs) -> dict:
         try:
-            decoded = self.jwk_url.decode(token)
+            decoded = jwt.decode(token, key, algorithms=["RS256"])
             if decoded["token_type"] != "access":
-                raise USSOException(
-                    status_code=401,
-                    error="invalid_token_type",
-                )
+                raise USSOException(status_code=401, error="invalid_token_type")
             decoded["token"] = token
             return UserData(**decoded)
         except jwt.exceptions.ExpiredSignatureError:
@@ -92,45 +88,59 @@ class Usso:
                 raise USSOException(status_code=401, error="invalid_signature")
         except jwt.exceptions.InvalidAlgorithmError:
             if kwargs.get("raise_exception", True):
-                raise USSOException(
-                    status_code=401,
-                    error="invalid_algorithm",
-                )
+                raise USSOException(status_code=401, error="invalid_algorithm")
         except jwt.exceptions.InvalidIssuedAtError:
             if kwargs.get("raise_exception", True):
-                raise USSOException(
-                    status_code=401,
-                    error="invalid_issued_at",
-                )
+                raise USSOException(status_code=401, error="invalid_issued_at")
         except jwt.exceptions.InvalidTokenError:
             if kwargs.get("raise_exception", True):
-                raise USSOException(
-                    status_code=401,
-                    error="invalid_token",
-                )
+                raise USSOException(status_code=401, error="invalid_token")
         except jwt.exceptions.InvalidKeyError:
             if kwargs.get("raise_exception", True):
-                raise USSOException(
-                    status_code=401,
-                    error="invalid_key",
-                )
-        except KeyError as e:
-            if kwargs.get("raise_exception", True):
-                raise USSOException(
-                    status_code=401,
-                    error="key_error",
-                    message=str(e),
-                )
+                raise USSOException(status_code=401, error="invalid_key")
         except USSOException as e:
             if kwargs.get("raise_exception", True):
                 raise e
         except Exception as e:
             if kwargs.get("raise_exception", True):
-                raise USSOException(
-                    status_code=401,
-                    error="error",
-                    message=str(e),
-                )
+                raise USSOException(status_code=401, error="error", message=str(e))
+            logger.error(e)
+
+    def user_data_from_token(self, token: str, **kwargs) -> UserData | None:
+        """Return the user associated with a token value."""
+        try:
+            decoded = self.jwk_url.decode(token)
+            if decoded["token_type"] != "access":
+                raise USSOException(status_code=401, error="invalid_token_type")
+            decoded["token"] = token
+            return UserData(**decoded)
+        except jwt.exceptions.ExpiredSignatureError:
+            if kwargs.get("raise_exception", True):
+                raise USSOException(status_code=401, error="expired_signature")
+        except jwt.exceptions.InvalidSignatureError:
+            if kwargs.get("raise_exception", True):
+                raise USSOException(status_code=401, error="invalid_signature")
+        except jwt.exceptions.InvalidAlgorithmError:
+            if kwargs.get("raise_exception", True):
+                raise USSOException(status_code=401, error="invalid_algorithm")
+        except jwt.exceptions.InvalidIssuedAtError:
+            if kwargs.get("raise_exception", True):
+                raise USSOException(status_code=401, error="invalid_issued_at")
+        except jwt.exceptions.InvalidTokenError:
+            if kwargs.get("raise_exception", True):
+                raise USSOException(status_code=401, error="invalid_token")
+        except jwt.exceptions.InvalidKeyError:
+            if kwargs.get("raise_exception", True):
+                raise USSOException(status_code=401, error="invalid_key")
+        except KeyError as e:
+            if kwargs.get("raise_exception", True):
+                raise USSOException(status_code=401, error="key_error", message=str(e))
+        except USSOException as e:
+            if kwargs.get("raise_exception", True):
+                raise e
+        except Exception as e:
+            if kwargs.get("raise_exception", True):
+                raise USSOException(status_code=401, error="error", message=str(e))
             logger.error(e)
 
     async def jwt_access_security(self, request: Request) -> UserData | None:
