@@ -24,7 +24,10 @@ class AsyncUssoSession:
             decoded_token = jwt.decode(
                 self._refresh_token, options={"verify_signature": False}
             )
-            exp = decoded_token.get("exp", datetime.now() + timedelta(days=1))
+            exp = decoded_token.get(
+                "exp", (datetime.now() + timedelta(days=1)).timestamp()
+            )
+            exp = datetime.fromtimestamp(exp)
             if exp < datetime.now():
                 self._refresh_token = None
 

@@ -24,7 +24,10 @@ class UssoSession:
             decoded_token = jwt.decode(
                 self._refresh_token, options={"verify_signature": False}
             )
-            exp = decoded_token.get("exp", datetime.now() + timedelta(days=1))
+            exp = decoded_token.get(
+                "exp", (datetime.now() + timedelta(days=1)).timestamp()
+            )
+            exp = datetime.fromtimestamp(exp)
             if exp < datetime.now():
                 self._refresh_token = None
 
@@ -42,7 +45,7 @@ class UssoSession:
     def _refresh(self):
         if not self.refresh_token and not self.api_key:
             return
-        
+
         if self.api_key and not self.refresh_token:
             self._refresh_api()
 
