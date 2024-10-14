@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
 import aiohttp
+from fastapi import params
 import jwt
 
 
@@ -11,12 +12,14 @@ class AsyncUssoSession:
         sso_refresh_url: str,
         refresh_token: str | None = None,
         api_key: str | None = None,
+        user_id: str | None = None,
     ):
         self.sso_refresh_url = sso_refresh_url
         self._refresh_token = refresh_token
         self.access_token = None
         self.session = None  # This will hold the aiohttp session
         self.api_key = api_key
+        self.user_id = user_id
 
     @property
     def refresh_token(self):
@@ -38,6 +41,7 @@ class AsyncUssoSession:
             async with session.get(
                 f"{self.sso_refresh_url}/api",
                 headers={"x-api-key": self.api_key},
+                params={"user_id": self.user_id},
             ) as response:
                 response.raise_for_status()
                 data: dict = await response.json()

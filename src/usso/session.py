@@ -11,12 +11,14 @@ class UssoSession:
         sso_refresh_url: str,
         refresh_token: str | None = None,
         api_key: str | None = None,
+        user_id: str | None = None,
     ):
         self.sso_refresh_url = sso_refresh_url
         self._refresh_token = refresh_token
         self.session = requests.Session()
         self.access_token = None
         self.api_key = api_key
+        self.user_id = user_id
 
     @property
     def refresh_token(self):
@@ -37,8 +39,9 @@ class UssoSession:
         response = requests.get(
             f"{self.sso_refresh_url}/api",
             headers={"x-api-key": self.api_key},
+            params={"user_id": self.user_id},
         )
-        response.raise_for_status()
+        response.raise_for_status()curl
         data = response.json()
         self._refresh_token = data.get("token", {}).get("refresh_token")
 
