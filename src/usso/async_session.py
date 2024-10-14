@@ -45,7 +45,7 @@ class AsyncUssoSession:
             raise ValueError("Refresh token not provided or invalid.")
 
         if self.api_key and not self.refresh_token:
-            self._refresh_api()
+            await self._refresh_api()
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
