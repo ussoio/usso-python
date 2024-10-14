@@ -20,12 +20,13 @@ class UssoSession:
 
     @property
     def refresh_token(self):
-        decoded_token = jwt.decode(
-            self._refresh_token, options={"verify_signature": False}
-        )
-        exp = decoded_token.get("exp", datetime.now() + timedelta(days=1))
-        if exp < datetime.now():
-            self._refresh_token = None
+        if self._refresh_token:
+            decoded_token = jwt.decode(
+                self._refresh_token, options={"verify_signature": False}
+            )
+            exp = decoded_token.get("exp", datetime.now() + timedelta(days=1))
+            if exp < datetime.now():
+                self._refresh_token = None
 
         return self._refresh_token
 
