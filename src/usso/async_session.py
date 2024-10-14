@@ -37,11 +37,12 @@ class AsyncUssoSession:
         return self._refresh_token
 
     async def _refresh_api(self):
+        params = {"user_id": self.user_id} if self.user_id else {}
         async with aiohttp.ClientSession() as session:
             async with session.get(
                 f"{self.sso_refresh_url}/api",
                 headers={"x-api-key": self.api_key},
-                params={"user_id": self.user_id},
+                params=params,
             ) as response:
                 response.raise_for_status()
                 data: dict = await response.json()

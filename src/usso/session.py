@@ -36,12 +36,13 @@ class UssoSession:
         return self._refresh_token
 
     def _refresh_api(self):
+        params = {"user_id": self.user_id} if self.user_id else {}
         response = requests.get(
             f"{self.sso_refresh_url}/api",
             headers={"x-api-key": self.api_key},
-            params={"user_id": self.user_id},
+            params=params,
         )
-        response.raise_for_status()curl
+        response.raise_for_status()
         data = response.json()
         self._refresh_token = data.get("token", {}).get("refresh_token")
 
