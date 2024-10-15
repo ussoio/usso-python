@@ -69,7 +69,7 @@ class UssoSession:
             if exp < datetime.now():
                 self.access_token = None
         if not self.access_token:
-            self.access_token = self._refresh()["access_token"]
+            self.access_token = self._refresh().get("access_token")
             self.session.headers.update(
                 {"Authorization": f"Bearer {self.access_token}"}
             )

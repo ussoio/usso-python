@@ -76,7 +76,7 @@ class AsyncUssoSession:
         if not self.access_token:
             # Get a new token if none exists or it has expired
             token_data = await self._refresh()
-            self.access_token = token_data["access_token"]
+            self.access_token = token_data.get("access_token")
 
             # Update headers with the new access token
             if self.session:
