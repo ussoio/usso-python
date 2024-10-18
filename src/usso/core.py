@@ -147,23 +147,31 @@ class Usso:
     def __init__(
         self,
         *,
-        jwt_config: str | dict | JWTConfig | None = None,
-        jwt_configs: list[str] | list[dict] | list[JWTConfig] | None = None,
+        jwt_config: str | dict | JWTConfig | list[str] | list[dict] | list[JWTConfig] | None = None,
+        jwk_url: str | None = None,
+        secret: str | None = None,
     ):
-        if jwt_config is None and jwt_configs is None:
+        if jwt_config is None:
             jwt_config = os.getenv("USSO_JWT_CONFIG")
 
-        if jwt_config is None and jwt_configs is None:
-            jwk_url = os.getenv("USSO_JWK_URL") or os.getenv("USSO_JWKS_URL")
+        if jwt_config is None:
             if not jwk_url:
+                jwk_url = os.getenv("USSO_JWK_URL") or os.getenv("USSO_JWKS_URL")
+            if jwk_url:
                 self.jwt_configs = [JWTConfig(jwk_url=jwk_url)]
+                return
+            
+            if not secret:
+                secret = os.getenv("USSO_SECRET")
+            if secret:
+                self.jwt_configs = [JWTConfig(secret=secret)]
                 return
 
             raise ValueError(
                 "\n".join(
                     [
-                        "Either jwt_config or jwt_configs must be provided",
-                        "or set the environment variable USSO_JWT_CONFIG or USSO_JWK_URL",
+                        "jwt_config or jwk_url or secret must be provided",
+                        "or set the environment variable USSO_JWT_CONFIG or USSO_JWK_URL or USSO_SECRET",
                     ]
                 )
             )

@@ -27,33 +27,35 @@ def get_request_token(request: Request | WebSocket) -> UserData | None:
     return token
 
 
-def jwt_access_security_None(request: Request) -> UserData | None:
+def jwt_access_security_None(request: Request, jwt_config = None) -> UserData | None:
     """Return the user associated with a token value."""
     token = get_request_token(request)
     if not token:
         return None
-    return Usso().user_data_from_token(token, raise_exception=False)
+    return Usso(jwt_config=jwt_config).user_data_from_token(token, raise_exception=False)
 
 
-def jwt_access_security(request: Request) -> UserData | None:
+def jwt_access_security(request: Request, jwt_config=None) -> UserData | None:
     """Return the user associated with a token value."""
     token = get_request_token(request)
     if not token:
         raise USSOException(
             status_code=HTTP_401_UNAUTHORIZED,
             error="unauthorized",
+            message="No token provided",
         )
 
-    return Usso().user_data_from_token(token)
+    return Usso(jwt_config=jwt_config).user_data_from_token(token)
 
 
-def jwt_access_security_ws(websocket: WebSocket) -> UserData | None:
+def jwt_access_security_ws(websocket: WebSocket, jwt_config=None) -> UserData | None:
     """Return the user associated with a token value."""
     token = get_request_token(websocket)
     if not token:
         raise USSOException(
             status_code=HTTP_401_UNAUTHORIZED,
             error="unauthorized",
+            message="No token provided",
         )
 
-    return Usso().user_data_from_token(token)
+    return Usso(jwt_config=jwt_config).user_data_from_token(token)
