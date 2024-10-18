@@ -2,7 +2,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
 import aiohttp
-from fastapi import params
 import jwt
 
 
