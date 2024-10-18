@@ -5,7 +5,7 @@ from starlette.status import HTTP_401_UNAUTHORIZED
 
 from usso.exceptions import USSOException
 
-from ..core import UserData, Usso
+from ..core import UserData, Usso, get_authorization_scheme_param
 
 logger = logging.getLogger("usso")
 
@@ -15,7 +15,7 @@ def get_request_token(request: Request | WebSocket) -> UserData | None:
     token = None
 
     if authorization:
-        scheme, credentials = Usso().get_authorization_scheme_param(authorization)
+        scheme, credentials = get_authorization_scheme_param(authorization)
         if scheme.lower() == "bearer":
             token = credentials
 

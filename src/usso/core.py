@@ -188,7 +188,16 @@ class Usso:
         exp = None
         for jwk_config in self.jwt_configs:
             try:
-                return jwk_config.decode(token)
+                user_data = jwk_config.decode(token)
+                if user_data.token_type.lower() != kwargs.get("token_type", "access"):
+                    raise USSOException(
+                        status_code=401,
+                        error="invalid_token_type",
+                        message="Token type must be 'access'",
+                    )
+
+                return user_data
+
             except USSOException as e:
                 exp = e
 
