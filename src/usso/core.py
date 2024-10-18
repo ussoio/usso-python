@@ -1,8 +1,8 @@
+import json
 import logging
 import os
 import uuid
 from functools import lru_cache
-from typing import Optional, Tuple
 
 import cachetools.func
 import jwt
@@ -142,33 +142,60 @@ class JWTConfig(BaseModel):
         return decode_token(self.secret, token, algorithms=[self.type])
 
 
-class Usso(metaclass=Singleton):
-    def __init__(self, jwks_url: str | None = None):
-        if jwks_url is None:
-            jwks_url = os.getenv("USSO_JWKS_URL")
-        self.jwks_url = jwks_url
+class Usso:
 
-    def get_jwk_keys(self):
-        return get_jwk_keys(self.jwks_url)
+    def __init__(
+        self,
+        *,
+        jwt_config: str | dict | JWTConfig | None = None,
+        jwt_configs: list[str] | list[dict] | list[JWTConfig] | None = None,
+    ):
+        if jwt_config is None and jwt_configs is None:
+            jwt_config = os.getenv("USSO_JWT_CONFIG")
 
-    def get_authorization_scheme_param(
-        self, authorization_header_value: Optional[str]
-    ) -> Tuple[str, str]:
-        return get_authorization_scheme_param(authorization_header_value)
+        if jwt_config is None and jwt_configs is None:
+            jwk_url = os.getenv("USSO_JWK_URL") or os.getenv("USSO_JWKS_URL")
+            if not jwk_url:
+                self.jwt_configs = [JWTConfig(jwk_url=jwk_url)]
+                return
+
+            raise ValueError(
+                "\n".join(
+                    [
+                        "Either jwt_config or jwt_configs must be provided",
+                        "or set the environment variable USSO_JWT_CONFIG or USSO_JWK_URL",
+                    ]
+                )
+            )
+
+        def _get_config(jwt_config):
+            if isinstance(jwt_config, str):
+                jwt_config = json.loads(jwt_config)
+            if isinstance(jwt_config, dict):
+                jwt_config = JWTConfig(**jwt_config)
+            return jwt_config
+
+        if isinstance(jwt_config, str | dict | JWTConfig):
+            jwt_config = [_get_config(jwt_config)]
+        elif isinstance(jwt_config, list):
+            jwt_config = [_get_config(j) for j in jwt_config]
+
+        # self.jwk_url = jwt_config
+        self.jwt_configs = jwt_config
 
     def user_data_from_token(self, token: str, **kwargs) -> UserData | None:
         """Return the user associated with a token value."""
-        user_data = decode_token_jwk(self.jwks_url, token, **kwargs)
-        if user_data.token_type.lower() != kwargs.get("token_type", "access"):
-            raise USSOException(status_code=401, error="invalid_token_type")
-        return user_data
+        exp = None
+        for jwk_config in self.jwt_configs:
+            try:
+                return jwk_config.decode(token)
+            except USSOException as e:
+                exp = e
 
-    def user_data_from_token_none(self, token: str, **kwargs) -> UserData | None:
-        try:
-            return self.user_data_from_token(token, **kwargs)
-        except USSOException:
-            # logger.error(str(e))
-            return None
-        except Exception:
-            # logger.error(str(e))
-            return None
+        if kwargs.get("raise_exception", True):
+            if exp:
+                raise exp
+            raise USSOException(
+                status_code=401,
+                error="unauthorized",
+            )
