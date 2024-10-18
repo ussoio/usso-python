@@ -7,7 +7,6 @@ from functools import lru_cache
 import cachetools.func
 import jwt
 from pydantic import BaseModel, model_validator
-from singleton import Singleton
 
 from . import b64tools
 from .exceptions import USSOException
@@ -61,6 +60,7 @@ def get_authorization_scheme_param(
 def decode_token(key, token: str, algorithms=["RS256"], **kwargs) -> dict:
     try:
         decoded = jwt.decode(token, key, algorithms=algorithms)
+        decoded["data"] = decoded
         decoded["token"] = token
         return UserData(**decoded)
     except jwt.exceptions.ExpiredSignatureError:
