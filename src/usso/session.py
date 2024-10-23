@@ -58,6 +58,8 @@ class UssoSession:
             json={"refresh_token": f"{self.refresh_token}"},
         )
         response.raise_for_status()
+        self.access_token = response.json().get("access_token")
+        self.session.headers.update({"Authorization": f"Bearer {self.access_token}"})
         return response.json()
 
     def get_session(self):

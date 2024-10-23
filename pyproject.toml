@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso"
-version = "0.25.4"
+version = "0.26.0"
 description = "A plug-and-play client for integrating universal single sign-on (SSO) with Python frameworks, enabling secure and seamless authentication across microservices."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -34,7 +34,7 @@ dependencies = [
   # "singleton_package",
   "cachetools",
 ]
-optional-dependencies = {"fastapi" = ["fastapi>=0.65.0", "uvicorn[standard]>=0.13.0"],"django" = ["Django>=3.2"],"dev" = ["check-manifest"],"test" = ["coverage"]}
+optional-dependencies = {"fastapi"=["fastapi>=0.65.0", "uvicorn[standard]>=0.13.0"], "django"=["Django>=3.2"], "httpx"=["httpx"], "dev"=["check-manifest"], "test" = ["coverage"], "all"=["fastapi", "uvicorn", "django", "httpx", "dev", "test"]}
 
 [project.urls]
 "Homepage" = "https://github.com/ussoio/usso-python"
