@@ -2,10 +2,12 @@ import json
 import logging
 import os
 import uuid
-from functools import lru_cache
+from urllib.parse import urlparse
 
 import cachetools.func
 import jwt
+import requests
+from cachetools import TTLCache, cached
 from pydantic import BaseModel, model_validator
 
 from . import b64tools
@@ -90,7 +92,7 @@ def decode_token(key, token: str, algorithms=["RS256"], **kwargs) -> dict:
         logger.error(e)
 
 
-@lru_cache
+@cached(TTLCache(maxsize=128, ttl=10 * 60))
 def get_jwk_keys(jwk_url: str) -> jwt.PyJWKClient:
     return jwt.PyJWKClient(jwk_url, headers={"User-Agent": "usso-python"})
 
@@ -113,6 +115,15 @@ def decode_token_jwk(jwk_url: str, token: str, **kwargs) -> UserData | None:
                 message=str(e),
             )
         logger.error(e)
+
+
+@cached(TTLCache(maxsize=128, ttl=10 * 60))
+def get_api_key_data(jwk_url: str, api_key: str):
+    parsed = urlparse(jwk_url)
+    url = f"{parsed.scheme}://{parsed.netloc}/api_key/verify"
+    response = requests.post(url, json={"api_key": api_key})
+    response.raise_for_status()
+    return UserData(**response.json())
 
 
 class JWTConfig(BaseModel):
@@ -147,7 +158,9 @@ class Usso:
     def __init__(
         self,
         *,
-        jwt_config: str | dict | JWTConfig | list[str] | list[dict] | list[JWTConfig] | None = None,
+        jwt_config: (
+            str | dict | JWTConfig | list[str] | list[dict] | list[JWTConfig] | None
+        ) = None,
         jwk_url: str | None = None,
         secret: str | None = None,
     ):
@@ -160,7 +173,7 @@ class Usso:
             if jwk_url:
                 self.jwt_configs = [JWTConfig(jwk_url=jwk_url)]
                 return
-            
+
             if not secret:
                 secret = os.getenv("USSO_SECRET")
             if secret:
@@ -216,3 +229,31 @@ class Usso:
                 status_code=401,
                 error="unauthorized",
             )
+
+    def user_data_api_key(self, api_key: str, **kwargs) -> UserData | None:
+        """get user data from auth server by api_key."""
+        for jwk_config in self.jwt_configs:
+            try:
+                user_data = jwk_config.decode(api_key)
+                if user_data.token_type.lower() != kwargs.get("token_type", "access"):
+                    raise USSOException(
+                        status_code=401,
+                        error="invalid_token_type",
+                        message="Token type must be 'access'",
+                    )
+
+                return user_data
+
+            except USSOException as e:
+                exp = e
+
+        if kwargs.get("raise_exception", True):
+            if exp:
+                raise exp
+            raise USSOException(
+                status_code=401,
+                error="unauthorized",
+            )
+
+    def user_data_from_api_key(self, api_key: str):
+        return get_api_key_data(self.jwt_configs[0].jwk_url, api_key)

@@ -27,16 +27,26 @@ def get_request_token(request: Request | WebSocket) -> UserData | None:
     return token
 
 
-def jwt_access_security_None(request: Request, jwt_config = None) -> UserData | None:
+def jwt_access_security_None(request: Request, jwt_config=None) -> UserData | None:
     """Return the user associated with a token value."""
+    api_key = request.headers.get("x-api-key")
+    if api_key:
+        return Usso(jwt_config=jwt_config).user_data_from_api_key(api_key)
+
     token = get_request_token(request)
     if not token:
         return None
-    return Usso(jwt_config=jwt_config).user_data_from_token(token, raise_exception=False)
+    return Usso(jwt_config=jwt_config).user_data_from_token(
+        token, raise_exception=False
+    )
 
 
 def jwt_access_security(request: Request, jwt_config=None) -> UserData | None:
     """Return the user associated with a token value."""
+    api_key = request.headers.get("x-api-key")
+    if api_key:
+        return Usso(jwt_config=jwt_config).user_data_from_api_key(api_key)
+
     token = get_request_token(request)
     if not token:
         raise USSOException(
@@ -50,6 +60,10 @@ def jwt_access_security(request: Request, jwt_config=None) -> UserData | None:
 
 def jwt_access_security_ws(websocket: WebSocket, jwt_config=None) -> UserData | None:
     """Return the user associated with a token value."""
+    api_key = websocket.headers.get("x-api-key")
+    if api_key:
+        return Usso(jwt_config=jwt_config).user_data_from_api_key(api_key)
+
     token = get_request_token(websocket)
     if not token:
         raise USSOException(
