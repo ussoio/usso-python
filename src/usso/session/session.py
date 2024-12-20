@@ -1,79 +1,37 @@
-from urllib.parse import urlparse
+import os
 
 import requests
+from usso.core import is_expired
 
-from ..core import is_expired
+from .base_session import BaseUssoSession
 
 
-class BaseUssoSession:
+class UssoSession(BaseUssoSession, requests.Session):
+
     def __init__(
         self,
-        usso_base_url: str | None = None,
-        api_key: str | None = None,
-        usso_refresh_url: str | None = None,
-        refresh_token: str | None = None,
-        usso_api_key: str | None = None,
+        *,
+        usso_base_url: str | None = os.getenv("USSO_URL"),
+        api_key: str | None = os.getenv("USSO_API_KEY"),
+        usso_refresh_url: str | None = os.getenv("USSO_REFRESH_URL"),
+        refresh_token: str | None = os.getenv("USSO_REFRESH_TOKEN"),
+        usso_api_key: str | None = os.getenv("USSO_ADMIN_API_KEY"),
         user_id: str | None = None,
     ):
-        assert (
-            usso_base_url or usso_refresh_url
-        ), "usso_base_url or usso_refresh_url is required"
-        assert (
-            refresh_token or api_key or usso_api_key
-        ), "refresh_token or api_key or usso_api_key is required"
+        requests.Session.__init__(self)
+        BaseUssoSession.__init__(
+            self,
+            usso_base_url=usso_base_url,
+            api_key=api_key,
+            usso_refresh_url=usso_refresh_url,
+            refresh_token=refresh_token,
+            usso_api_key=usso_api_key,
+            user_id=user_id,
+        )
+        self.headers.update(self.headers)
 
-        if not usso_base_url:
-            url_parts = urlparse(usso_refresh_url)
-            usso_base_url = f"{url_parts.scheme}://{url_parts.netloc}"
-        if usso_base_url.endswith("/"):
-            usso_base_url = usso_base_url[:-1]
-
-        self.usso_refresh_url = usso_refresh_url or f"{usso_base_url}/auth/refresh"
-        self._refresh_token = refresh_token
-        self.session = requests.Session()
-        self.access_token = None
-        self.api_key = api_key
-        self.usso_api_key = usso_api_key
-        self.user_id = user_id
-        self.headers = {}
-        if api_key:
-            self.headers = {"x-api-key": api_key}
-            self.session.headers.update(self.headers)
-
-    @property
-    def refresh_token(self):
-        if self._refresh_token and is_expired(self._refresh_token):
-            self._refresh_token = None
-
-        return self._refresh_token
-
-    def request(self, method: str, url: str, **kwargs):
-        return self._request(method, url, **kwargs)
-
-    def get(self, url: str, **kwargs):
-        return self._request("GET", url, **kwargs)
-
-    def post(self, url: str, **kwargs):
-        return self._request("POST", url, **kwargs)
-
-    def put(self, url: str, **kwargs):
-        return self._request("PUT", url, **kwargs)
-
-    def patch(self, url: str, **kwargs):
-        return self._request("PATCH", url, **kwargs)
-
-    def delete(self, url: str, **kwargs):
-        return self._request("DELETE", url, **kwargs)
-
-    def head(self, url: str, **kwargs):
-        return self._request("HEAD", url, **kwargs)
-
-    def options(self, url: str, **kwargs):
-        return self._request("OPTIONS", url, **kwargs)
-
-
-class UssoSession(BaseUssoSession):
     def _refresh_api(self):
+        assert self.usso_api_key, "usso_api_key is required"
         params = {"user_id": self.user_id} if self.user_id else {}
         response = requests.get(
             f"{self.usso_refresh_url}/api",
@@ -97,20 +55,17 @@ class UssoSession(BaseUssoSession):
         )
         response.raise_for_status()
         self.access_token = response.json().get("access_token")
-        self.session.headers.update({"Authorization": f"Bearer {self.access_token}"})
+        self.headers.update({"Authorization": f"Bearer {self.access_token}"})
         return response.json()
 
     def get_session(self):
         if self.api_key:
-            return self.session
+            return self
 
         if not self.access_token or is_expired(self.access_token):
             self._refresh()
-        return self.session
+        return self
 
     def _request(self, method: str, url: str, **kwargs):
-        session = self.get_session()
-        return session.request(method, url, **kwargs)
-
-    def close(self):
-        self.session.close()
+        self.get_session()
+        return requests.Session.request(self, method, url, **kwargs)

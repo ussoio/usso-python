@@ -3,7 +3,7 @@ import os
 import httpx
 
 from ..core import is_expired
-from .session import BaseUssoSession
+from .base_session import BaseUssoSession
 
 
 class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
@@ -18,6 +18,7 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         usso_api_key: str | None = os.getenv("USSO_ADMIN_API_KEY"),
         user_id: str | None = None,
     ):
+        httpx.AsyncClient.__init__(self)
         BaseUssoSession.__init__(
             self,
             usso_base_url=usso_base_url,
@@ -27,7 +28,6 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
             usso_api_key=usso_api_key,
             user_id=user_id,
         )
-        httpx.AsyncClient.__init__(self, headers=self.headers)
 
     async def _refresh_api(self):
         params = {"user_id": self.user_id} if self.user_id else {}
