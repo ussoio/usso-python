@@ -1,13 +1,11 @@
 from urllib.parse import urlparse
 
 import requests
-from singleton import Singleton
 
 from ..core import is_expired
 
 
-class BaseUssoSession(metaclass=Singleton):
-
+class BaseUssoSession:
     def __init__(
         self,
         usso_base_url: str | None = None,

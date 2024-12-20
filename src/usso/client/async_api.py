@@ -1,6 +1,6 @@
 import logging
 
-import aiohttp
+import httpx
 from singleton import Singleton
 
 from usso.core import UserData, Usso
@@ -28,18 +28,16 @@ class AsyncUssoAPI(metaclass=Singleton):
             return
 
         url = f"{self.url}/auth/refresh"
+        headers = {
+            "Authorization": f"Bearer {self.refresh_token}",
+            "Content-Type": "application/json",
+        }
 
-        if self.refresh_token:
-            headers = {
-                "Authorization": f"Bearer {self.refresh_token}",
-                "content-type": "application/json",
-            }
-
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, headers=headers) as resp:
-                if kwargs.get("raise_exception", True):
-                    resp.raise_for_status()
-                self.access_token = (await resp.json()).get("access_token")
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, headers=headers)
+            if kwargs.get("raise_exception", True):
+                resp.raise_for_status()
+            self.access_token = resp.json().get("access_token")
 
     def _access_valid(self) -> bool:
         if not self.access_token:
@@ -48,9 +46,7 @@ class AsyncUssoAPI(metaclass=Singleton):
         user_data = Usso(
             jwks_url=f"{self.url}/website/jwks.json?"
         ).user_data_from_token(self.access_token)
-        if user_data:
-            return True
-        return False
+        return bool(user_data)
 
     async def _request(
         self,
@@ -60,7 +56,7 @@ class AsyncUssoAPI(metaclass=Singleton):
         **kwargs,
     ) -> dict:
         url = f"{self.url}/{endpoint}"
-        headers = {"content-type": "application/json"}
+        headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["x-api-key"] = self.api_key
         elif self.refresh_token:
@@ -68,54 +64,41 @@ class AsyncUssoAPI(metaclass=Singleton):
                 await self._refresh()
             headers["Authorization"] = f"Bearer {self.access_token}"
 
-        async with aiohttp.ClientSession() as session:
-            async with session.request(
-                method,
-                url,
-                headers=headers,
-                json=data,
-            ) as resp:
-                try:
-                    resp_json = await resp.json()
-                    resp.raise_for_status()
-                except aiohttp.ClientError as e:
-                    logging.error(f"Error: {e}")
-                    logging.error(f"Response: {resp_json}")
-                    raise e
-                except Exception as e:
-                    logging.error(f"Error: {e}")
-                    logging.error(f"Response: {resp.text}")
-                    raise e
-                return await resp.json()
+        async with httpx.AsyncClient() as client:
+            try:
+                resp = await client.request(
+                    method,
+                    url,
+                    headers=headers,
+                    json=data,
+                )
+                resp.raise_for_status()
+                return resp.json()
+            except httpx.HTTPStatusError as e:
+                logging.error(f"HTTP error: {e.response.status_code} {e.response.text}")
+                raise e
+            except Exception as e:
+                logging.error(f"Unexpected error: {e}")
+                raise e
 
     async def get_users(self, **kwargs) -> list[UserData]:
         users_dict = await self._request(endpoint="website/users", **kwargs)
-
         return [UserData(user_id=user.get("uid"), **user) for user in users_dict]
 
     async def get_user(self, user_id: str, **kwargs) -> UserData:
-        user_dict = await self._request(
-            endpoint=f"website/users/{user_id}",
-            **kwargs,
-        )
+        user_dict = await self._request(endpoint=f"website/users/{user_id}", **kwargs)
         return UserData(user_id=user_dict.get("uid"), **user_dict)
 
     async def get_user_by_credentials(self, credentials: dict, **kwargs) -> UserData:
         user_dict = await self._request(
-            endpoint="website/users/credentials",
-            data=credentials,
-            **kwargs,
+            endpoint="website/users/credentials", data=credentials, **kwargs
         )
         return UserData(user_id=user_dict.get("uid"), **user_dict)
 
     async def create_user(self, user_data: dict, **kwargs) -> UserData:
         user_dict = await self._request(
-            method="post",
-            endpoint="website/users",
-            data=user_data,
-            **kwargs,
+            method="post", endpoint="website/users", data=user_data, **kwargs
         )
-
         return UserData(user_id=user_dict.get("uid"), **user_dict)
 
     async def create_user_credentials(
@@ -139,10 +122,7 @@ class AsyncUssoAPI(metaclass=Singleton):
         if credentials:
             user_data["authenticators"] = [credentials]
         user_dict = await self._request(
-            method="post",
-            endpoint="website/users",
-            data=credentials,
-            **kwargs,
+            method="post", endpoint="website/users", data=credentials, **kwargs
         )
         return UserData(user_id=user_dict.get("uid"), **user_dict)
 
