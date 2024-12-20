@@ -6,7 +6,6 @@ from django.db.utils import IntegrityError
 from django.http import JsonResponse
 from django.http.request import HttpRequest
 from django.utils.deprecation import MiddlewareMixin
-
 from usso import UserData, Usso, USSOException
 
 logger = logging.getLogger("usso")

@@ -1,8 +1,8 @@
 import logging
 
-from fastapi import Request, WebSocket
 from starlette.status import HTTP_401_UNAUTHORIZED
 
+from fastapi import Request, WebSocket
 from usso.exceptions import USSOException
 
 from ..core import UserData, Usso, get_authorization_scheme_param

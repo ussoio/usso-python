@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-import uuid
+from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 import cachetools.func
@@ -10,44 +10,10 @@ import requests
 from cachetools import TTLCache, cached
 from pydantic import BaseModel, model_validator
 
-from . import b64tools
 from .exceptions import USSOException
+from .schemas import UserData
 
 logger = logging.getLogger("usso")
-
-
-class UserData(BaseModel):
-    user_id: str
-    workspace_id: str | None = None
-    workspace_ids: list[str] = []
-    token_type: str = "access"
-
-    email: str | None = None
-    phone: str | None = None
-    username: str | None = None
-
-    authentication_method: str | None = None
-    is_active: bool = False
-
-    jti: str | None = None
-    data: dict | None = None
-
-    token: str | None = None
-
-    @property
-    def uid(self) -> uuid.UUID:
-        user_id = self.user_id
-
-        if user_id.startswith("u_"):
-            user_id = user_id[2:]
-        if 22 <= len(user_id) <= 24:
-            user_id = b64tools.b64_decode_uuid(user_id)
-
-        return uuid.UUID(user_id)
-
-    @property
-    def b64id(self) -> uuid.UUID:
-        return b64tools.b64_encode_uuid_strip(self.uid)
 
 
 def get_authorization_scheme_param(
@@ -90,6 +56,14 @@ def decode_token(key, token: str, algorithms=["RS256"], **kwargs) -> dict:
         if kwargs.get("raise_exception", True):
             raise USSOException(status_code=401, error="error", message=str(e))
         logger.error(e)
+
+
+def is_expired(token: str, **kwargs) -> bool:
+    now = datetime.now()
+    decoded_token: dict = jwt.decode(token, options={"verify_signature": False})
+    exp = decoded_token.get("exp", (now + timedelta(days=1)).timestamp())
+    exp = datetime.fromtimestamp(exp)
+    return exp >= now
 
 
 @cached(TTLCache(maxsize=128, ttl=10 * 60))
