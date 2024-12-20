@@ -14,7 +14,7 @@ The USSO-Client provides a universal single sign-on (SSO) integration for micros
 Install the USSO client using pip:
 
 ```bash
-pip install usso-client
+pip install usso
 ```
 
 To add framework-specific support, use the following commands:
@@ -22,7 +22,13 @@ To add framework-specific support, use the following commands:
 For FastAPI:
 
 ```bash
-pip install "usso-client[fastapi]"
+pip install "usso[fastapi]"
+```
+
+For Django:
+
+```bash
+pip install "usso[django]"
 ```
 
 ## Quick Start
