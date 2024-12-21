@@ -14,3 +14,4 @@ class USSOException(Exception):
         if message is None:
             self.message = error_messages[error]
         super().__init__(message)
+

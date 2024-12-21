@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import Request, WebSocket
+from fastapi.responses import JSONResponse
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from usso.exceptions import USSOException
@@ -73,3 +74,10 @@ def jwt_access_security_ws(websocket: WebSocket, jwt_config=None) -> UserData | 
         )
 
     return Usso(jwt_config=jwt_config).user_data_from_token(token)
+
+
+async def usso_exception_handler(request: Request, exc: USSOException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": exc.message, "error": exc.error},
+    )
