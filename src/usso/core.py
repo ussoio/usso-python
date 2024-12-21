@@ -63,7 +63,7 @@ def is_expired(token: str, **kwargs) -> bool:
     decoded_token: dict = jwt.decode(token, options={"verify_signature": False})
     exp = decoded_token.get("exp", (now + timedelta(days=1)).timestamp())
     exp = datetime.fromtimestamp(exp)
-    return exp >= now
+    return exp < now
 
 
 @cached(TTLCache(maxsize=128, ttl=10 * 60))
