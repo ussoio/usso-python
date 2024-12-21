@@ -1,13 +1,10 @@
 import os
-
 import httpx
-
 from ..core import is_expired
 from .base_session import BaseUssoSession
 
 
 class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
-
     def __init__(
         self,
         *,
@@ -28,33 +25,63 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
             usso_api_key=usso_api_key,
             user_id=user_id,
         )
+        self._refresh_sync()
 
-    async def _refresh_api(self):
+    def _prepare_refresh_request(self) -> tuple[dict, dict]:
+        """
+        Helper function to prepare headers and parameters for refresh requests.
+        """
+        headers = {"x-api-key": self.usso_api_key} if self.usso_api_key else {}
         params = {"user_id": self.user_id} if self.user_id else {}
-        response = await self.get(
-            f"{self.usso_refresh_url}/api",
-            headers={"x-api-key": self.usso_api_key},
-            params=params,
-        )
-        response.raise_for_status()
-        data: dict = response.json()
-        self._refresh_token = data.get("token", {}).get("refresh_token")
+        return headers, params
 
-    async def _refresh(self):
+    def _handle_refresh_response(self, response: httpx.Response) -> dict:
+        """
+        Helper function to process the response from refresh requests.
+        """
+        response.raise_for_status()
+        data = response.json()
+        self.access_token = data.get("access_token")
+        self._refresh_token = data.get("token", {}).get("refresh_token")
+        if self.access_token:
+            self.headers.update({"Authorization": f"Bearer {self.access_token}"})
+        return data
+
+    def _refresh_sync(self) -> dict:
         assert (
             self.refresh_token or self.usso_api_key
         ), "refresh_token or usso_api_key is required"
 
+        headers, params = self._prepare_refresh_request()
+
         if self.usso_api_key and not self.refresh_token:
-            await self._refresh_api()
+            response = httpx.get(
+                f"{self.usso_refresh_url}/api", headers=headers, params=params
+            )
+            self._handle_refresh_response(response)
+
+        response = httpx.post(
+            self.usso_refresh_url, json={"refresh_token": self.refresh_token}
+        )
+        return self._handle_refresh_response(response)
+
+    async def _refresh(self) -> dict:
+        assert (
+            self.refresh_token or self.usso_api_key
+        ), "refresh_token or usso_api_key is required"
+
+        headers, params = self._prepare_refresh_request()
+
+        if self.usso_api_key and not self.refresh_token:
+            response = await self.get(
+                f"{self.usso_refresh_url}/api", headers=headers, params=params
+            )
+            self._handle_refresh_response(response)
 
         response = await self.post(
-            self.usso_refresh_url, json={"refresh_token": f"{self.refresh_token}"}
+            self.usso_refresh_url, json={"refresh_token": self.refresh_token}
         )
-        response.raise_for_status()
-        self.access_token = response.json().get("access_token")
-        self.headers.update({"Authorization": f"Bearer {self.access_token}"})
-        return response.json()
+        return self._handle_refresh_response(response)
 
     async def get_session(self):
         if self.api_key:

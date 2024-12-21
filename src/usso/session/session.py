@@ -28,6 +28,7 @@ class UssoSession(BaseUssoSession, requests.Session):
             usso_api_key=usso_api_key,
             user_id=user_id,
         )
+        self._refresh()
         self.headers.update(self.headers)
 
     def _refresh_api(self):
