@@ -14,17 +14,21 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         refresh_token: str | None = os.getenv("USSO_REFRESH_TOKEN"),
         usso_api_key: str | None = os.getenv("USSO_ADMIN_API_KEY"),
         user_id: str | None = None,
+        client: "AsyncUssoSession" | None = None,
     ):
         httpx.AsyncClient.__init__(self)
-        BaseUssoSession.__init__(
-            self,
-            usso_base_url=usso_base_url,
-            api_key=api_key,
-            usso_refresh_url=usso_refresh_url,
-            refresh_token=refresh_token,
-            usso_api_key=usso_api_key,
-            user_id=user_id,
-        )
+        if client:
+            self.copy_attributes_from(client)
+        else:
+            BaseUssoSession.__init__(
+                self,
+                usso_base_url=usso_base_url,
+                api_key=api_key,
+                usso_refresh_url=usso_refresh_url,
+                refresh_token=refresh_token,
+                usso_api_key=usso_api_key,
+                user_id=user_id,
+            )
         self._refresh_sync()
 
     def _prepare_refresh_request(self) -> tuple[dict, dict]:

@@ -1,12 +1,12 @@
 import os
 
-import requests
+import httpx
 from usso.core import is_expired
 
 from .base_session import BaseUssoSession
 
 
-class UssoSession(BaseUssoSession, requests.Session):
+class UssoSession(BaseUssoSession, httpx.Client):
 
     def __init__(
         self,
@@ -17,24 +17,28 @@ class UssoSession(BaseUssoSession, requests.Session):
         refresh_token: str | None = os.getenv("USSO_REFRESH_TOKEN"),
         usso_api_key: str | None = os.getenv("USSO_ADMIN_API_KEY"),
         user_id: str | None = None,
+        client: "UssoSession" | None = None,
     ):
-        requests.Session.__init__(self)
-        BaseUssoSession.__init__(
-            self,
-            usso_base_url=usso_base_url,
-            api_key=api_key,
-            usso_refresh_url=usso_refresh_url,
-            refresh_token=refresh_token,
-            usso_api_key=usso_api_key,
-            user_id=user_id,
-        )
+        httpx.Client.__init__(self)
+
+        if client:
+            self.copy_attributes_from(client)
+        else:
+            BaseUssoSession.__init__(
+                self,
+                usso_base_url=usso_base_url,
+                api_key=api_key,
+                usso_refresh_url=usso_refresh_url,
+                refresh_token=refresh_token,
+                usso_api_key=usso_api_key,
+                user_id=user_id,
+            )
         self._refresh()
-        self.headers.update(self.headers)
 
     def _refresh_api(self):
         assert self.usso_api_key, "usso_api_key is required"
         params = {"user_id": self.user_id} if self.user_id else {}
-        response = requests.get(
+        response = httpx.get(
             f"{self.usso_refresh_url}/api",
             headers={"x-api-key": self.usso_api_key},
             params=params,
@@ -51,7 +55,7 @@ class UssoSession(BaseUssoSession, requests.Session):
         if self.usso_api_key and not self.refresh_token:
             self._refresh_api()
 
-        response = requests.post(
+        response = httpx.post(
             self.usso_refresh_url, json={"refresh_token": f"{self.refresh_token}"}
         )
         response.raise_for_status()
@@ -69,4 +73,4 @@ class UssoSession(BaseUssoSession, requests.Session):
 
     def _request(self, method: str, url: str, **kwargs):
         self.get_session()
-        return requests.Session.request(self, method, url, **kwargs)
+        return super().request(self, method, url, **kwargs)

@@ -27,6 +27,7 @@ class BaseUssoSession:
         if usso_base_url.endswith("/"):
             usso_base_url = usso_base_url[:-1]
 
+        self.usso_base_url = usso_base_url
         self.usso_refresh_url = usso_refresh_url or f"{usso_base_url}/auth/refresh"
         self._refresh_token = refresh_token
         self.access_token = None
@@ -36,6 +37,16 @@ class BaseUssoSession:
         self.headers = getattr(self, "headers", {})
         if api_key:
             self.headers.update({"x-api-key": api_key})
+
+    def copy_attributes_from(self, client: "BaseUssoSession"):
+        self.usso_base_url = client.usso_base_url
+        self.usso_refresh_url = client.usso_refresh_url
+        self._refresh_token = client._refresh_token
+        self.access_token = client.access_token
+        self.api_key = client.api_key
+        self.usso_api_key = client.usso_api_key
+        self.user_id = client.user_id
+        self.headers = client.headers.copy()
 
     @property
     def refresh_token(self):
