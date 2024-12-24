@@ -1,6 +1,7 @@
 import os
 
 import httpx
+
 from usso.core import is_expired
 
 from .base_session import BaseUssoSession
@@ -21,18 +22,16 @@ class UssoSession(BaseUssoSession, httpx.Client):
     ):
         httpx.Client.__init__(self)
 
-        if client:
-            self.copy_attributes_from(client)
-        else:
-            BaseUssoSession.__init__(
-                self,
-                usso_base_url=usso_base_url,
-                api_key=api_key,
-                usso_refresh_url=usso_refresh_url,
-                refresh_token=refresh_token,
-                usso_api_key=usso_api_key,
-                user_id=user_id,
-            )
+        BaseUssoSession.__init__(
+            self,
+            usso_base_url=usso_base_url,
+            api_key=api_key,
+            usso_refresh_url=usso_refresh_url,
+            refresh_token=refresh_token,
+            usso_api_key=usso_api_key,
+            user_id=user_id,
+            client=client,
+        )
         self._refresh()
 
     def _refresh_api(self):

@@ -5,13 +5,11 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
 import cachetools.func
+import httpx
 import jwt
-import requests
-from cachetools import TTLCache, cached
-from pydantic import BaseModel, model_validator
 
 from .exceptions import USSOException
-from .schemas import UserData
+from .schemas import JWTConfig, UserData
 
 logger = logging.getLogger("usso")
 
@@ -26,36 +24,34 @@ def get_authorization_scheme_param(
 
 
 def decode_token(key, token: str, algorithms=["RS256"], **kwargs) -> dict:
+    """Decode a JWT token."""
     try:
         decoded = jwt.decode(token, key, algorithms=algorithms)
-        decoded["data"] = decoded
-        decoded["token"] = token
+        decoded.update({"data": decoded, "token": token})
         return UserData(**decoded)
-    except jwt.exceptions.ExpiredSignatureError:
-        if kwargs.get("raise_exception", True):
-            raise USSOException(status_code=401, error="expired_signature")
-    except jwt.exceptions.InvalidSignatureError:
-        if kwargs.get("raise_exception", True):
-            raise USSOException(status_code=401, error="invalid_signature")
-    except jwt.exceptions.InvalidAlgorithmError:
-        if kwargs.get("raise_exception", True):
-            raise USSOException(status_code=401, error="invalid_algorithm")
-    except jwt.exceptions.InvalidIssuedAtError:
-        if kwargs.get("raise_exception", True):
-            raise USSOException(status_code=401, error="invalid_issued_at")
-    except jwt.exceptions.InvalidTokenError:
-        if kwargs.get("raise_exception", True):
-            raise USSOException(status_code=401, error="invalid_token")
-    except jwt.exceptions.InvalidKeyError:
-        if kwargs.get("raise_exception", True):
-            raise USSOException(status_code=401, error="invalid_key")
-    except USSOException as e:
-        if kwargs.get("raise_exception", True):
-            raise e
+    except jwt.ExpiredSignatureError:
+        _handle_exception("expired_signature", **kwargs)
+    except jwt.InvalidSignatureError:
+        _handle_exception("invalid_signature", **kwargs)
+    except jwt.InvalidAlgorithmError:
+        _handle_exception("invalid_algorithm", **kwargs)
+    except jwt.InvalidIssuedAtError:
+        _handle_exception("invalid_issued_at", **kwargs)
+    except jwt.InvalidTokenError:
+        _handle_exception("invalid_token", **kwargs)
+    except jwt.InvalidKeyError:
+        _handle_exception("invalid_key", **kwargs)
     except Exception as e:
-        if kwargs.get("raise_exception", True):
-            raise USSOException(status_code=401, error="error", message=str(e))
-        logger.error(e)
+        _handle_exception("error", message=str(e), **kwargs)
+
+
+def _handle_exception(error_type: str, **kwargs):
+    """Handle JWT-related exceptions."""
+    if kwargs.get("raise_exception", True):
+        raise USSOException(
+            status_code=401, error=error_type, message=kwargs.get("message")
+        )
+    logger.error(kwargs.get("message") or error_type)
 
 
 def is_expired(token: str, **kwargs) -> bool:
@@ -66,69 +62,31 @@ def is_expired(token: str, **kwargs) -> bool:
     return exp < now
 
 
-@cached(TTLCache(maxsize=128, ttl=10 * 60))
+@cachetools.func.ttl_cache(maxsize=128, ttl=10 * 60)
 def get_jwk_keys(jwk_url: str) -> jwt.PyJWKClient:
     return jwt.PyJWKClient(jwk_url, headers={"User-Agent": "usso-python"})
 
 
-def decode_token_jwk(jwk_url: str, token: str, **kwargs) -> UserData | None:
+def decode_token_with_jwk(jwk_url: str, token: str, **kwargs) -> UserData | None:
     """Return the user associated with a token value."""
     try:
         jwk_client = get_jwk_keys(jwk_url)
         signing_key = jwk_client.get_signing_key_from_jwt(token)
         return decode_token(signing_key.key, token, **kwargs)
-    except USSOException as e:
-        if kwargs.get("raise_exception", True):
-            raise e
-        logger.error(e)
     except Exception as e:
-        if kwargs.get("raise_exception", True):
-            raise USSOException(
-                status_code=401,
-                error="error",
-                message=str(e),
-            )
-        logger.error(e)
+        _handle_exception("error", message=str(e), **kwargs)
 
 
-@cached(TTLCache(maxsize=128, ttl=10 * 60))
-def get_api_key_data(jwk_url: str, api_key: str):
+@cachetools.func.ttl_cache(maxsize=128, ttl=10 * 60)
+def fetch_api_key_data(jwk_url: str, api_key: str):
     parsed = urlparse(jwk_url)
     url = f"{parsed.scheme}://{parsed.netloc}/api_key/verify"
-    response = requests.post(url, json={"api_key": api_key})
+    response = httpx.post(url, json={"api_key": api_key})
     response.raise_for_status()
     return UserData(**response.json())
 
 
-class JWTConfig(BaseModel):
-    jwk_url: str | None = None
-    secret: str | None = None
-    type: str = "RS256"
-    header: dict[str, str] = {"type": "Cookie", "name": "usso_access_token"}
-
-    def __hash__(self):
-        return hash(self.model_dump_json())
-
-    @model_validator(mode="before")
-    def validate_secret(cls, data: dict):
-        if not data.get("jwk_url") and not data.get("secret"):
-            raise ValueError("Either jwk_url or secret must be provided")
-        return data
-
-    @classmethod
-    @cachetools.func.ttl_cache(maxsize=128, ttl=10 * 60)
-    def get_jwk_keys(cls, jwk_url):
-        return get_jwk_keys(jwk_url)
-
-    @cachetools.func.ttl_cache(maxsize=128, ttl=10 * 60)
-    def decode(self, token: str):
-        if self.jwk_url:
-            return decode_token_jwk(self.jwk_url, token)
-        return decode_token(self.secret, token, algorithms=[self.type])
-
-
 class Usso:
-
     def __init__(
         self,
         *,
@@ -138,45 +96,44 @@ class Usso:
         jwk_url: str | None = None,
         secret: str | None = None,
     ):
+        self.jwt_configs = self._initialize_configs(jwt_config, jwk_url, secret)
+
+    def _initialize_configs(
+        self,
+        jwt_config: (
+            str | dict | JWTConfig | list[str] | list[dict] | list[JWTConfig] | None
+        ) = None,
+        jwk_url: str | None = None,
+        secret: str | None = None,
+    ):
+        """Initialize JWT configurations."""
         if jwt_config is None:
             jwt_config = os.getenv("USSO_JWT_CONFIG")
 
         if jwt_config is None:
-            if not jwk_url:
-                jwk_url = os.getenv("USSO_JWK_URL") or os.getenv("USSO_JWKS_URL")
+            jwk_url = jwk_url or os.getenv("USSO_JWK_URL") or os.getenv("USSO_JWKS_URL")
+            secret = secret or os.getenv("USSO_SECRET")
             if jwk_url:
-                self.jwt_configs = [JWTConfig(jwk_url=jwk_url)]
-                return
-
-            if not secret:
-                secret = os.getenv("USSO_SECRET")
+                return [JWTConfig(jwk_url=jwk_url)]
             if secret:
-                self.jwt_configs = [JWTConfig(secret=secret)]
-                return
-
+                return [JWTConfig(secret=secret)]
             raise ValueError(
-                "\n".join(
-                    [
-                        "jwt_config or jwk_url or secret must be provided",
-                        "or set the environment variable USSO_JWT_CONFIG or USSO_JWK_URL or USSO_SECRET",
-                    ]
-                )
+                "Provide jwt_config, jwk_url, or secret, or set the appropriate environment variables."
             )
 
-        def _get_config(jwt_config):
-            if isinstance(jwt_config, str):
-                jwt_config = json.loads(jwt_config)
-            if isinstance(jwt_config, dict):
-                jwt_config = JWTConfig(**jwt_config)
-            return jwt_config
+        if isinstance(jwt_config, (str, dict, JWTConfig)):
+            return [self._parse_config(jwt_config)]
+        if isinstance(jwt_config, list):
+            return [self._parse_config(config) for config in jwt_config]
+        raise ValueError("Invalid jwt_config format")
 
-        if isinstance(jwt_config, str | dict | JWTConfig):
-            jwt_config = [_get_config(jwt_config)]
-        elif isinstance(jwt_config, list):
-            jwt_config = [_get_config(j) for j in jwt_config]
-
-        # self.jwk_url = jwt_config
-        self.jwt_configs = jwt_config
+    def _parse_config(self, config):
+        """Parse a single JWT configuration."""
+        if isinstance(config, str):
+            config = json.loads(config)
+        if isinstance(config, dict):
+            return JWTConfig(**config)
+        return config
 
     def user_data_from_token(self, token: str, **kwargs) -> UserData | None:
         """Return the user associated with a token value."""
@@ -185,49 +142,15 @@ class Usso:
             try:
                 user_data = jwk_config.decode(token)
                 if user_data.token_type.lower() != kwargs.get("token_type", "access"):
-                    raise USSOException(
-                        status_code=401,
-                        error="invalid_token_type",
-                        message="Token type must be 'access'",
-                    )
-
+                    _handle_exception("invalid_token_type", **kwargs)
                 return user_data
-
             except USSOException as e:
                 exp = e
 
         if kwargs.get("raise_exception", True):
             if exp:
-                raise exp
-            raise USSOException(
-                status_code=401,
-                error="unauthorized",
-            )
-
-    def user_data_api_key(self, api_key: str, **kwargs) -> UserData | None:
-        """get user data from auth server by api_key."""
-        for jwk_config in self.jwt_configs:
-            try:
-                user_data = jwk_config.decode(api_key)
-                if user_data.token_type.lower() != kwargs.get("token_type", "access"):
-                    raise USSOException(
-                        status_code=401,
-                        error="invalid_token_type",
-                        message="Token type must be 'access'",
-                    )
-
-                return user_data
-
-            except USSOException as e:
-                exp = e
-
-        if kwargs.get("raise_exception", True):
-            if exp:
-                raise exp
-            raise USSOException(
-                status_code=401,
-                error="unauthorized",
-            )
+                _handle_exception(exp.error, message=str(exp), **kwargs)
+            _handle_exception("unauthorized", **kwargs)
 
     def user_data_from_api_key(self, api_key: str):
-        return get_api_key_data(self.jwt_configs[0].jwk_url, api_key)
+        return fetch_api_key_data(self.jwt_configs[0].jwk_url, api_key)

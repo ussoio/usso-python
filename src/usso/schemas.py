@@ -1,6 +1,7 @@
 import uuid
 
-from pydantic import BaseModel
+import cachetools.func
+from pydantic import BaseModel, model_validator
 
 from . import b64tools
 
@@ -37,3 +38,30 @@ class UserData(BaseModel):
     @property
     def b64id(self) -> uuid.UUID:
         return b64tools.b64_encode_uuid_strip(self.uid)
+
+
+class JWTConfig(BaseModel):
+    """Configuration for JWT processing."""
+
+    jwk_url: str | None = None
+    secret: str | None = None
+    algorithm: str = "RS256"
+    header: dict[str, str] = {"type": "Cookie", "name": "usso_access_token"}
+
+    def __hash__(self):
+        return hash(self.model_dump_json())
+
+    @model_validator(mode="before")
+    def validate_config(cls, data: dict):
+        if not data.get("jwk_url") and not data.get("secret"):
+            raise ValueError("Either jwk_url or secret must be provided")
+        return data
+
+    @cachetools.func.ttl_cache(maxsize=128, ttl=600)
+    def decode(self, token: str):
+        """Decode a token using the configured method."""
+        from .core import decode_token, decode_token_with_jwk
+
+        if self.jwk_url:
+            return decode_token_with_jwk(self.jwk_url, token)
+        return decode_token(self.secret, token, algorithms=[self.algorithm])

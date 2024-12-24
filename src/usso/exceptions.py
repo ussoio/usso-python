@@ -1,8 +1,9 @@
 error_messages = {
-    "invalid_signature": "Invalid signature",
-    "invalid_token": "Invalid token",
-    "expired_signature": "Expired signature",
+    "invalid_signature": "Unauthorized. The JWT signature is invalid.",
+    "invalid_token": "Unauthorized. The JWT is invalid or not provided.",
+    "expired_signature": "Unauthorized. The JWT is expired.",
     "unauthorized": "Unauthorized",
+    "invalid_token_type": "Unauthorized. Token type must be 'access'",
 }
 
 
@@ -14,4 +15,3 @@ class USSOException(Exception):
         if message is None:
             self.message = error_messages[error]
         super().__init__(message)
-
