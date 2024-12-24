@@ -41,7 +41,7 @@ class BaseUssoSession:
         self.usso_api_key = usso_api_key
         self.user_id = user_id
         self.headers = getattr(self, "headers", {})
-        if api_key:
+        if self.api_key:
             self.headers.update({"x-api-key": api_key})
 
     def copy_attributes_from(self, client: "BaseUssoSession"):

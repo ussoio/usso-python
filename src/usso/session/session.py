@@ -32,7 +32,8 @@ class UssoSession(httpx.Client, BaseUssoSession):
             user_id=user_id,
             client=client,
         )
-        self._refresh()
+        if self.api_key:
+            self._refresh()
 
     def _refresh_api(self):
         assert self.usso_api_key, "usso_api_key is required"

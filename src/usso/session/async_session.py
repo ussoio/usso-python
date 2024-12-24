@@ -29,7 +29,8 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
             user_id=user_id,
             client=client,
         )
-        self._refresh_sync()
+        if self.api_key:
+            self._refresh_sync()
 
     def _prepare_refresh_request(self) -> tuple[dict, dict]:
         """
