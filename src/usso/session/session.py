@@ -32,7 +32,7 @@ class UssoSession(httpx.Client, BaseUssoSession):
             user_id=user_id,
             client=client,
         )
-        if self.api_key:
+        if not self.api_key:
             self._refresh()
 
     def _refresh_api(self):
