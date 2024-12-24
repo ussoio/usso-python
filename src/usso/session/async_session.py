@@ -16,7 +16,7 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         refresh_token: str | None = os.getenv("USSO_REFRESH_TOKEN"),
         usso_api_key: str | None = os.getenv("USSO_ADMIN_API_KEY"),
         user_id: str | None = None,
-        client: "AsyncUssoSession" | None = None,
+        client: "AsyncUssoSession" = None,
     ):
         httpx.AsyncClient.__init__(self)
         BaseUssoSession.__init__(

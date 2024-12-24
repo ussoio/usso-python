@@ -14,7 +14,7 @@ class BaseUssoSession:
         refresh_token: str | None = os.getenv("USSO_REFRESH_TOKEN"),
         usso_api_key: str | None = os.getenv("USSO_ADMIN_API_KEY"),
         user_id: str | None = None,
-        client: "BaseUssoSession" | None = None,
+        client: "BaseUssoSession" = None,
     ):
         if client:
             self.copy_attributes_from(client)

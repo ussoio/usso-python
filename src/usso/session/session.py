@@ -18,7 +18,7 @@ class UssoSession(httpx.Client, BaseUssoSession):
         refresh_token: str | None = os.getenv("USSO_REFRESH_TOKEN"),
         usso_api_key: str | None = os.getenv("USSO_ADMIN_API_KEY"),
         user_id: str | None = None,
-        client: "UssoSession" | None = None,
+        client: "UssoSession" = None,
     ):
         httpx.Client.__init__(self)
 
