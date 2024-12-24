@@ -7,7 +7,7 @@ from usso.core import is_expired
 from .base_session import BaseUssoSession
 
 
-class UssoSession(BaseUssoSession, httpx.Client):
+class UssoSession(httpx.Client, BaseUssoSession):
 
     def __init__(
         self,
