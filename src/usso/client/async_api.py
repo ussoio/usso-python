@@ -15,6 +15,7 @@ class AsyncUssoAPI(metaclass=Singleton):
     ):
         if url and not url.startswith("http"):
             url = f"https://{url}"
+        url = url.rstrip("/")
         self.url = url
         assert (
             api_key or refresh_token
