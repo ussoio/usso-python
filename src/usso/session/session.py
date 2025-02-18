@@ -22,9 +22,9 @@ class UssoSession(httpx.Client, BaseUssoSession):
         **kwargs,
     ):
 
-        httpx_kwargs = _filter_kwargs(kwargs, httpx.Client.__init__)
+        # httpx_kwargs = _filter_kwargs(kwargs, httpx.Client.__init__)
 
-        httpx.Client.__init__(self, **httpx_kwargs)
+        httpx.Client.__init__(self) #, **httpx_kwargs)
 
         BaseUssoSession.__init__(
             self,
