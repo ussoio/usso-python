@@ -36,15 +36,15 @@ class UssoSession(httpx.Client, BaseUssoSession):
             user_id=user_id,
             client=client,
         )
-        if not hasattr(self, "api_key") or not self.api_key:
+        if not self.api_key:
             self._refresh()
 
     def _refresh_api(self):
-        assert self.usso_api_key, "usso_api_key is required"
+        assert self.usso_admin_api_key, "usso_api_key is required"
         params = {"user_id": self.user_id} if self.user_id else {}
         response = httpx.get(
             f"{self.usso_refresh_url}/api",
-            headers={"x-api-key": self.usso_api_key},
+            headers={"x-api-key": self.usso_admin_api_key},
             params=params,
         )
         response.raise_for_status()
@@ -53,10 +53,10 @@ class UssoSession(httpx.Client, BaseUssoSession):
 
     def _refresh(self):
         assert (
-            self.refresh_token or self.usso_api_key
+            self.refresh_token or self.usso_admin_api_key
         ), "refresh_token or usso_api_key is required"
 
-        if self.usso_api_key and not self.refresh_token:
+        if self.usso_admin_api_key and not self.refresh_token:
             self._refresh_api()
 
         response = httpx.post(
@@ -68,7 +68,7 @@ class UssoSession(httpx.Client, BaseUssoSession):
         return response.json()
 
     def get_session(self):
-        if hasattr(self, "api_key") and self.api_key:
+        if self.api_key:
             return self
 
         if not self.access_token or is_expired(self.access_token):

@@ -2,9 +2,7 @@ import os
 from urllib.parse import urlparse
 
 from usso.core import is_expired
-from typing import Optional, Any, Callable
-import inspect
-
+from typing import Optional
 
 
 class BaseUssoSession:
@@ -61,7 +59,10 @@ class BaseUssoSession:
 
         if api_key:
             self.api_key = api_key
+            self.headers = self.headers or {}
             self.headers.update({"x-api-key": api_key})
+        else:
+            self.api_key = None
 
         if not usso_base_url:
             url_parts = urlparse(usso_refresh_url)
