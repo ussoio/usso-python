@@ -29,7 +29,7 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
             user_id=user_id,
             client=client,
         )
-        if not self.api_key:
+        if not hasattr(self, "api_key") or not self.api_key:
             self._refresh_sync()
 
     def _prepare_refresh_request(self) -> tuple[dict, dict]:
@@ -89,7 +89,7 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         return self._handle_refresh_response(response)
 
     async def get_session(self):
-        if self.api_key:
+        if hasattr(self, "api_key") and self.api_key:
             return self
 
         if not self.access_token or is_expired(self.access_token):

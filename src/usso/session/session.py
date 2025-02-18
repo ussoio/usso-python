@@ -36,7 +36,7 @@ class UssoSession(httpx.Client, BaseUssoSession):
             user_id=user_id,
             client=client,
         )
-        if not self.api_key:
+        if not hasattr(self, "api_key") or not self.api_key:
             self._refresh()
 
     def _refresh_api(self):
@@ -68,7 +68,7 @@ class UssoSession(httpx.Client, BaseUssoSession):
         return response.json()
 
     def get_session(self):
-        if self.api_key:
+        if hasattr(self, "api_key") and self.api_key:
             return self
 
         if not self.access_token or is_expired(self.access_token):
