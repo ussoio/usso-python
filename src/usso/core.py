@@ -79,11 +79,15 @@ def decode_token_with_jwk(jwk_url: str, token: str, **kwargs) -> UserData | None
 
 @cachetools.func.ttl_cache(maxsize=128, ttl=10 * 60)
 def fetch_api_key_data(jwk_url: str, api_key: str):
-    parsed = urlparse(jwk_url)
-    url = f"{parsed.scheme}://{parsed.netloc}/api_key/verify"
-    response = httpx.post(url, json={"api_key": api_key})
-    response.raise_for_status()
-    return UserData(**response.json())
+    try:
+        parsed = urlparse(jwk_url)
+        url = f"{parsed.scheme}://{parsed.netloc}/api_key/verify"
+        response = httpx.post(url, json={"api_key": api_key})
+        response.raise_for_status()
+        return UserData(**response.json())
+    except Exception as e:
+        _handle_exception("error", message=str(e))
+
 
 
 class Usso:

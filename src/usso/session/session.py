@@ -1,11 +1,11 @@
 import os
-
+import inspect
+from typing import Callable, Any
 import httpx
 
 from usso.core import is_expired
 
 from .base_session import BaseUssoSession
-
 
 class UssoSession(httpx.Client, BaseUssoSession):
 
@@ -19,8 +19,12 @@ class UssoSession(httpx.Client, BaseUssoSession):
         usso_api_key: str | None = os.getenv("USSO_ADMIN_API_KEY"),
         user_id: str | None = None,
         client: "UssoSession" = None,
+        **kwargs,
     ):
-        httpx.Client.__init__(self)
+
+        httpx_kwargs = _filter_kwargs(kwargs, httpx.Client.__init__)
+
+        httpx.Client.__init__(self, **httpx_kwargs)
 
         BaseUssoSession.__init__(
             self,
