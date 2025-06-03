@@ -37,7 +37,9 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         Helper function to prepare headers and parameters for refresh requests.
         """
         headers = (
-            {"x-api-key": self.usso_admin_api_key} if self.usso_admin_api_key else {}
+            {"x-api-key": self.usso_admin_api_key}
+            if self.usso_admin_api_key
+            else {}
         )
         params = {"user_id": self.user_id} if self.user_id else {}
         return headers, params
@@ -51,13 +53,15 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         self.access_token = data.get("access_token")
         self._refresh_token = data.get("token", {}).get("refresh_token")
         if self.access_token:
-            self.headers.update({"Authorization": f"Bearer {self.access_token}"})
+            self.headers.update({
+                "Authorization": f"Bearer {self.access_token}"
+            })
         return data
 
     def _refresh_sync(self) -> dict:
-        assert (
-            self.refresh_token or self.usso_admin_api_key
-        ), "refresh_token or usso_api_key is required"
+        assert self.refresh_token or self.usso_admin_api_key, (
+            "refresh_token or usso_api_key is required"
+        )
 
         headers, params = self._prepare_refresh_request()
 
@@ -73,9 +77,9 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         return self._handle_refresh_response(response)
 
     async def _refresh(self) -> dict:
-        assert (
-            self.refresh_token or self.usso_admin_api_key
-        ), "refresh_token or usso_api_key is required"
+        assert self.refresh_token or self.usso_admin_api_key, (
+            "refresh_token or usso_api_key is required"
+        )
 
         headers, params = self._prepare_refresh_request()
 

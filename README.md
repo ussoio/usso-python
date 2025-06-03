@@ -1,41 +1,124 @@
-# USSO-Client
+# 🛡️ USSO Python Client SDK
 
-The USSO-Client provides a universal single sign-on (SSO) integration for microservices, making it easy to add secure, scalable authentication across different frameworks. This client simplifies the process of connecting any microservice to the USSO service.
+The **USSO Python Client SDK** (`usso`) provides a universal, secure JWT authentication layer for Python microservices and web frameworks.  
+It’s designed to integrate seamlessly with the [USSO Identity Platform](https://github.com/ussoio/usso) — or any standards-compliant token issuer.
 
-## Features
+---
 
-- **Core SSO Integration**: Use the USSO core client for basic SSO functionality across any Python application.
-- **Framework-Specific Modules**:
-  - **FastAPI Integration**: Specialized support for FastAPI applications, enabling async authentication mechanisms tailored to FastAPI's event loop.
-  - *Django Integration* (Coming soon): Customizable Django authentication backend that integrates seamlessly with Django's user management and middleware architecture.
+## 🔗 Relationship to the USSO Platform
 
-## Installation
+This SDK is the official verification client for the **USSO** identity service, which provides multi-tenant authentication, RBAC, token flows, and more.  
+You can use the SDK with:
+- Self-hosted USSO via Docker
+- Any identity provider that issues signed JWTs (with proper config)
 
-Install the USSO client using pip:
+---
+
+## ✨ Features
+
+- ✅ **Token verification** for EdDSA, RS256, HS256, and more
+- ✅ **Claim validation** (`exp`, `nbf`, `aud`, `iss`)
+- ✅ **Remote JWK support** for key rotation
+- ✅ **Typed payload parsing** via `UserData` (Pydantic)
+- ✅ **Token extraction** from:
+  - `Authorization` header
+  - Cookies
+  - Custom headers
+- ✅ **FastAPI integration** with dependency injection
+- ✅ **Django middleware** for request-based user resolution
+- 🧪 90% tested with `pytest` and `tox`
+
+---
+
+## 📦 Installation
 
 ```bash
 pip install usso
-```
+````
 
-To add framework-specific support, use the following commands:
-
-For FastAPI:
+With framework extras:
 
 ```bash
-pip install "usso[fastapi]"
+pip install "usso[fastapi]"     # for FastAPI integration
+pip install "usso[django]"      # for Django integration
 ```
 
-For Django:
+---
+
+## 🚀 Quick Start (FastAPI)
+
+```python
+from usso.fastapi.integration import get_authenticator
+from usso.schemas import JWTConfig, JWTHeaderConfig, UserData
+from usso.jwt.enums import Algorithm
+
+config = JWTConfig(
+    key="your-ed25519-public-key",
+    issuer="https://sso.example.com",
+    audience="api.example.com",
+    type=Algorithm.EdDSA,
+    header=JWTHeaderConfig(type="Authorization")
+)
+
+authenticator = get_authenticator(config)
+
+@app.get("/me")
+def get_me(user: UserData = Depends(authenticator)):
+    return {"user_id": user.sub, "roles": user.roles}
+```
+
+---
+
+## 🧱 Project Structure
+
+```
+src/usso/
+├── fastapi/            # FastAPI adapter
+├── django/             # Django middleware
+├── jwt/                # Core JWT logic and algorithms
+├── session/            # Stateless session support
+├── models/             # JWTConfig, UserData, etc.
+├── exceptions/         # Shared exceptions
+├── authenticator.py    # High-level API (token + user resolution)
+```
+
+---
+
+## 🐳 Integrate with USSO (Docker)
+
+Run your own identity provider:
 
 ```bash
-pip install "usso[django]"
+docker run -p 8000:8000 ghcr.io/ussoio/usso:latest
 ```
 
-## Quick Start
-Follow the quick start guides in the documentation to integrate USSO in your application.
+Then configure your app to verify tokens issued by this service, using its public JWKS endpoint:
 
-## Contributing
-Contributions are welcome! See CONTRIBUTING.md for more details on how to get involved.
+```python
+JWTConfig(
+    jwk_url="http://localhost:8000/.well-known/jwks.json",
+    ...
+)
+```
 
-## License
-Distributed under the MIT License. See LICENSE for more information.
+---
+
+## 🧪 Testing
+
+```bash
+pytest
+tox
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! 
+
+---
+
+## 📝 License
+
+MIT License © \[mahdikiani]
+

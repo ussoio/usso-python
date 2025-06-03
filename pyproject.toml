@@ -4,23 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso"
-version = "0.27.22"
+version = "0.28.0"
 description = "A plug-and-play client for integrating universal single sign-on (SSO) with Python frameworks, enabling secure and seamless authentication across microservices."
 readme = "README.md"
 requires-python = ">=3.9"
-license = {file = "LICENSE.txt"}
+license = "MIT"
+license-files = ["LICENSE.txt"]
 keywords = ["usso", "sso", "authentication", "security", "fastapi", "django"]
-authors = [
-  {name = "Mahdi Kiani", email = "mahdikiany@gmail.com"}
-]
-maintainers = [
-  {name = "Mahdi Kiani", email = "mahdikiany@gmail.com"}
-]
+authors = [{ name = "Mahdi Kiani", email = "mahdikiany@gmail.com" }]
+maintainers = [{ name = "Mahdi Kiani", email = "mahdikiany@gmail.com" }]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
   "Topic :: Software Development :: Build Tools",
-  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
@@ -29,13 +25,29 @@ classifiers = [
 ]
 dependencies = [
   "pydantic>=2",
-  "pyjwt[crypto]",
+  "cryptography>=43.0.0",
   "cachetools",
   "singleton_package",
   "json-advanced",
   "httpx",
+  "usso-jwt>=0.1.0",
 ]
-optional-dependencies = {"fastapi"=["fastapi>=0.65.0", "uvicorn[standard]>=0.13.0"], "django"=["Django>=3.2"], "httpx"=["httpx"], "dev"=["check-manifest"], "test" = ["coverage"], "all"=["fastapi", "uvicorn", "django", "httpx", "dev", "test"]}
+optional-dependencies = { "fastapi" = [
+  "fastapi>=0.65.0",
+  "uvicorn[standard]>=0.13.0",
+], "django" = [
+  "Django>=3.2",
+], "dev" = [
+  "check-manifest",
+], "test" = [
+  "coverage",
+], "all" = [
+  "fastapi",
+  "uvicorn",
+  "django",
+  "dev",
+  "test",
+] }
 
 [project.urls]
 "Homepage" = "https://github.com/ussoio/usso-python"
@@ -48,4 +60,17 @@ optional-dependencies = {"fastapi"=["fastapi>=0.65.0", "uvicorn[standard]>=0.13.
 usso = "usso:main"
 
 [tool.setuptools]
-package-data = {"usso" = ["*.dat"]}
+package-data = { "usso_jwt" = ["*.dat"] }
+
+[tool.ruff]
+line-length = 79
+target-version = "py313"
+fix = true
+unsafe-fixes = true
+preview = true
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.format]
+quote-style = "double"

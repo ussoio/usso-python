@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger("usso")
+
 error_messages = {
     "invalid_signature": "Unauthorized. The JWT signature is invalid.",
     "invalid_token": "Unauthorized. The JWT is invalid or not provided.",
@@ -15,3 +19,12 @@ class USSOException(Exception):
         if message is None:
             self.message = error_messages[error]
         super().__init__(message)
+
+
+def _handle_exception(error_type: str, **kwargs):
+    """Handle JWT-related exceptions."""
+    if kwargs.get("raise_exception", True):
+        raise USSOException(
+            status_code=401, error=error_type, message=kwargs.get("message")
+        )
+    logger.error(kwargs.get("message") or error_type)

@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -6,17 +7,20 @@ from django.db.utils import IntegrityError
 from django.http import JsonResponse
 from django.http.request import HttpRequest
 from django.utils.deprecation import MiddlewareMixin
-
-from usso import UserData, Usso, USSOException
+from usso import AuthConfig, UserData, UssoAuth, USSOException
 
 logger = logging.getLogger("usso")
 
 
 class USSOAuthenticationMiddleware(MiddlewareMixin):
+    @property
+    def jwt_config(self) -> AuthConfig:
+        return settings.USSO_JWT_CONFIG
 
     def process_request(self, request: HttpRequest):
         """
-        Middleware to authenticate users by JWT token and create or return a user in the database.
+        Middleware to authenticate users by JWT token and create or
+        return a user in the database.
         """
         try:
             if hasattr(request, "user") and request.user.is_authenticated:
@@ -31,44 +35,48 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
             # Handle any errors raised by USSO authentication
             return JsonResponse({"error": str(e)}, status=401)
 
-    def get_request_token(self, request: HttpRequest) -> str | None:
-        authorization = request.headers.get("Authorization")
-        if authorization:
-            scheme, credentials = Usso(
-                jwks_url=settings.USSO_JWK_URL
-            ).get_authorization_scheme_param(authorization)
-            if scheme.lower() == "bearer":
-                return credentials  # Bearer token
+    def get_request_jwt(self, request: HttpRequest) -> str | None:
+        return self.jwt_config.get_jwt(request)
 
-        return request.COOKIES.get("usso_access_token")
-
-    def jwt_access_security_none(self, request: HttpRequest) -> UserData | None:
+    def jwt_access_security_none(
+        self,
+        request: HttpRequest,
+    ) -> UserData | None:
         """Return the user associated with a token value."""
-        token = self.get_request_token(request)
+        usso_auth = UssoAuth(jwt_config=self.jwt_config)
+        api_key = self.jwt_config.get_api_key(request)
+        if api_key:
+            return usso_auth.user_data_from_api_key(api_key)
+
+        token = self.get_request_jwt(request)
         if not token:
             return None
-        return Usso(jwks_url=settings.USSO_JWK_URL).user_data_from_token(
-            token, raise_exception=False
-        )
+        return usso_auth.user_data_from_token(token, raise_exception=False)
 
     def jwt_access_security(self, request: HttpRequest) -> UserData | None:
         """Return the user associated with a token value."""
-        token = self.get_request_token(request)
-        if not token:
-            raise USSOException(
-                status_code=401,
-                error="unauthorized",
-            )
+        usso_auth = UssoAuth(jwt_config=self.jwt_config)
+        api_key = self.jwt_config.get_api_key(request)
+        if api_key:
+            return usso_auth.user_data_from_api_key(api_key)
 
-        # Get user data from the token
-        return Usso(jwks_url=settings.USSO_JWK_URL).user_data_from_token(token)
+        token = self.get_request_jwt(request)
+        if not token:
+            return None
+        return usso_auth.user_data_from_token(token, raise_exception=False)
 
     def get_or_create_user(self, user_data: UserData) -> User:
         """
-        Check if a user exists by phone. If not, create a new user and return it.
+        Check if a user exists by phone. If not, create a new user
+        and return it.
         """
+        if self.jwt_config.jwk_url:
+            domain = urlparse(self.jwt_config.jwk_url).netloc
+        else:
+            domain = "example.com"
         phone = user_data.phone
-        email = user_data.email or f"{user_data.user_id}@example.com"  # Fallback email
+        email = user_data.email or f"{user_data.user_id}@{domain}"
+        # Fallback email
 
         try:
             # Try to get the user by phone
@@ -87,4 +95,4 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
 
         except IntegrityError as e:
             logger.error(f"Integrity error while creating user: {str(e)}")
-            raise ValueError(f"Error while creating user: {str(e)}")
+            raise ValueError(f"Error while creating user: {str(e)}") from e
