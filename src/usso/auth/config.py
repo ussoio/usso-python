@@ -84,7 +84,9 @@ class AuthConfig(usso_jwt.config.JWTConfig):
             return False
 
     @classmethod
-    def _parse_config(cls, config: Union[str, dict, "AuthConfig"]) -> "AuthConfig":
+    def _parse_config(
+        cls, config: Union[str, dict, "AuthConfig"]
+    ) -> "AuthConfig":
         """Parse a single JWT configuration."""
         if isinstance(config, str):
             config = json.loads(config)

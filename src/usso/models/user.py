@@ -32,6 +32,43 @@ class UserData(BaseModel):
 
     claims: dict | None = None
 
+    def __init__(
+        self,
+        *,
+        jti: str | None = None,
+        typ: TokenType | None = None,
+        iss: str | None = None,
+        aud: str | None = None,
+        iat: int | None = None,
+        nbf: int | None = None,
+        exp: int | None = None,
+        sub: str | None = None,
+        tenant_id: str | None = None,
+        workspace_id: str | None = None,
+        roles: list[str] | None = None,
+        scopes: list[str] | None = None,
+        acr: str | None = None,
+        signing_level: str | None = None,
+        **kwargs,
+    ):
+        super().__init__(
+            jti=jti,
+            typ=typ,
+            iss=iss,
+            aud=aud,
+            iat=iat,
+            nbf=nbf,
+            exp=exp,
+            sub=sub,
+            tenant_id=tenant_id,
+            workspace_id=workspace_id,
+            roles=roles,
+            scopes=scopes,
+            acr=acr,
+            signing_level=signing_level,
+        )
+        self.claims = self.model_dump() | kwargs
+
     @property
     def user_id(self) -> str:
         if self.claims and "user_id" in self.claims:

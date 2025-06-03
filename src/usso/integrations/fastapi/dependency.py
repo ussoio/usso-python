@@ -23,17 +23,29 @@ class USSOAuthentication(UssoAuth):
         if jwt_config is None:
             jwt_config = AuthConfig()
 
-        self.jwt_config = jwt_config
+        super().__init__(jwt_config=jwt_config)
         self.raise_exception = raise_exception
 
     @instance_method
     def get_request_jwt(self, request: Request | WebSocket) -> str | None:
-        return self.jwt_config.get_jwt(request)
+        for jwt_config in self.jwt_configs:
+            token = jwt_config.get_jwt(request)
+            if token:
+                return token
+        return None
+
+    @instance_method
+    def get_request_api_key(self, request: Request | WebSocket) -> str | None:
+        for jwt_config in self.jwt_configs:
+            token = jwt_config.get_api_key(request)
+            if token:
+                return token
+        return None
 
     @instance_method
     def usso_access_security(self, request: Request) -> UserData | None:
         """Return the user associated with a token value."""
-        api_key = self.jwt_config.get_api_key(request)
+        api_key = self.get_request_api_key(request)
         if api_key:
             return self.user_data_from_api_key(api_key)
 
@@ -53,7 +65,7 @@ class USSOAuthentication(UssoAuth):
     @instance_method
     def jwt_access_security_ws(self, websocket: WebSocket) -> UserData | None:
         """Return the user associated with a token value."""
-        api_key = self.jwt_config.get_api_key(websocket)
+        api_key = self.get_request_api_key(websocket)
         if api_key:
             return self.user_data_from_api_key(api_key)
 

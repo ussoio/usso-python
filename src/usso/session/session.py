@@ -8,7 +8,6 @@ from .base_session import BaseUssoSession
 
 
 class UssoSession(httpx.Client, BaseUssoSession):
-
     def __init__(
         self,
         *,
@@ -31,9 +30,7 @@ class UssoSession(httpx.Client, BaseUssoSession):
             self._refresh()
 
     def _refresh(self):
-        assert self.refresh_token , (
-            "refresh_token is required"
-        )
+        assert self.refresh_token, "refresh_token is required"
 
         response = httpx.post(
             self.usso_refresh_url,

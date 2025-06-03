@@ -3,6 +3,7 @@
 import time
 
 import pytest
+from usso_jwt import sign
 from usso_jwt.algorithms import AbstractKey, EdDSAKey
 
 
@@ -44,3 +45,18 @@ def test_header(test_key: AbstractKey) -> dict:
         "alg": test_key.algorithm,
         "typ": "JWT",
     }
+
+
+@pytest.fixture
+def test_valid_token(
+    test_valid_payload: dict,
+    test_header: dict,
+    test_key: AbstractKey,
+):
+    jwt = sign.generate_jwt(
+        header=test_header,
+        payload=test_valid_payload,
+        key=test_key.private_der(),
+        alg=test_key.algorithm,
+    )
+    return jwt

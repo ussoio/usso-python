@@ -21,7 +21,7 @@ class UssoAuth:
     def __init__(
         self,
         *,
-        jwt_config: AvailableJwtConfigs = None,
+        jwt_config: AvailableJwtConfigs | None = None,
     ):
         """Initialize the USSO authentication client.
 
@@ -67,7 +67,7 @@ class UssoAuth:
 
         if raise_exception:
             if exp:
-                _handle_exception(exp.error, message=str(exp), **kwargs)
+                _handle_exception("unauthorized", message=str(exp), **kwargs)
             _handle_exception("unauthorized", **kwargs)
 
     def user_data_from_api_key(self, api_key: str) -> UserData:
