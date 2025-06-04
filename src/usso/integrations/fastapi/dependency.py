@@ -1,13 +1,10 @@
 import logging
 
-from starlette.status import HTTP_401_UNAUTHORIZED
-
 from fastapi import Request, WebSocket
-from fastapi.responses import JSONResponse
 
 from ...auth import UssoAuth
 from ...auth.config import AuthConfig, AvailableJwtConfigs
-from ...exceptions import USSOException
+from ...exceptions import _handle_exception
 from ...models.user import UserData
 from ...utils.method_utils import instance_method
 
@@ -26,6 +23,9 @@ class USSOAuthentication(UssoAuth):
         super().__init__(jwt_config=jwt_config)
         self.raise_exception = raise_exception
 
+    def __call__(self, request: Request) -> UserData:
+        return self.usso_access_security(request)
+
     @instance_method
     def get_request_jwt(self, request: Request | WebSocket) -> str | None:
         for jwt_config in self.jwt_configs:
@@ -42,7 +42,7 @@ class USSOAuthentication(UssoAuth):
                 return token
         return None
 
-    @instance_method
+    # @instance_method
     def usso_access_security(self, request: Request) -> UserData | None:
         """Return the user associated with a token value."""
         api_key = self.get_request_api_key(request)
@@ -54,15 +54,14 @@ class USSOAuthentication(UssoAuth):
             return self.user_data_from_token(
                 token, raise_exception=self.raise_exception
             )
-        if self.raise_exception:
-            raise USSOException(
-                status_code=HTTP_401_UNAUTHORIZED,
-                error="unauthorized",
-                message="No token provided",
-            )
-        return None
 
-    @instance_method
+        _handle_exception(
+            "Unauthorized",
+            message="No token provided",
+            raise_exception=self.raise_exception,
+        )
+
+    # @instance_method
     def jwt_access_security_ws(self, websocket: WebSocket) -> UserData | None:
         """Return the user associated with a token value."""
         api_key = self.get_request_api_key(websocket)
@@ -74,22 +73,8 @@ class USSOAuthentication(UssoAuth):
             return self.user_data_from_token(
                 token, raise_exception=self.raise_exception
             )
-        if self.raise_exception:
-            raise USSOException(
-                status_code=HTTP_401_UNAUTHORIZED,
-                error="unauthorized",
-                message="No token provided",
-            )
-        return None
-
-
-async def usso_exception_handler(request: Request, exc: USSOException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"message": exc.message, "error": exc.error},
-    )
-
-
-EXCEPTION_HANDLERS = {
-    USSOException: usso_exception_handler,
-}
+        _handle_exception(
+            "Unauthorized",
+            message="No token provided",
+            raise_exception=self.raise_exception,
+        )

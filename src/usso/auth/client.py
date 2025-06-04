@@ -65,10 +65,12 @@ class UssoAuth:
             except usso_jwt.exceptions.JWTError as e:
                 exp = e
 
-        if raise_exception:
-            if exp:
-                _handle_exception("unauthorized", message=str(exp), **kwargs)
-            _handle_exception("unauthorized", **kwargs)
+        _handle_exception(
+            "Unauthorized",
+            message=str(exp) if exp else None,
+            raise_exception=raise_exception,
+            **kwargs,
+        )
 
     def user_data_from_api_key(self, api_key: str) -> UserData:
         """Get user data from an API key.
