@@ -76,6 +76,16 @@ class UserData(BaseModel):
         return self.sub or ""
 
     @property
+    def uid(self) -> str:
+        return self.user_id
+
+    @property
+    def user_name(self) -> str:
+        if self.claims and "user_name" in self.claims:
+            return self.claims["user_name"]
+        return ""
+
+    @property
     def email(self) -> str:
         if self.claims and "email" in self.claims:
             return self.claims["email"]
