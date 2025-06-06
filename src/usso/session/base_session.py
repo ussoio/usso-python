@@ -68,7 +68,7 @@ class BaseUssoSession:
         if (
             self._refresh_token
             and self._refresh_token.verify(  # noqa: W503
-                expected_acr="refresh",
+                expected_token_type="refresh",
             )
             and self._refresh_token.is_temporally_valid()  # noqa: W503
         ):

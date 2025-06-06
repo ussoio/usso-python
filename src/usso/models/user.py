@@ -16,7 +16,7 @@ class TokenType(StrEnum):
 
 class UserData(BaseModel):
     jti: str | None = None
-    typ: TokenType | None = None
+    token_type: TokenType | None = None
     iss: str | None = None
     aud: str | None = None
     iat: int | None = None
@@ -36,7 +36,7 @@ class UserData(BaseModel):
         self,
         *,
         jti: str | None = None,
-        typ: TokenType | None = None,
+        token_type: TokenType | None = None,
         iss: str | None = None,
         aud: str | None = None,
         iat: int | None = None,
@@ -53,7 +53,7 @@ class UserData(BaseModel):
     ):
         super().__init__(
             jti=jti,
-            typ=typ,
+            token_type=token_type,
             iss=iss,
             aud=aud,
             iat=iat,

@@ -36,7 +36,7 @@ class UssoAuth:
         self,
         token: str,
         *,
-        expected_acr: str | None = "access",
+        expected_token_type: str | None = "access",
         raise_exception: bool = True,
         **kwargs,
     ) -> UserData | None:
@@ -44,7 +44,7 @@ class UssoAuth:
 
         Args:
             token: The JWT token to validate
-            expected_acr: Expected authentication context reference
+            expected_token_type: Expected token type
             raise_exception: Whether to raise exception on error
             **kwargs: Additional arguments to pass to token verification
 
@@ -60,7 +60,7 @@ class UssoAuth:
                 jwt_obj = usso_jwt.schemas.JWT(
                     token=token, config=jwk_config, payload_class=UserData
                 )
-                if jwt_obj.verify(expected_acr=expected_acr, **kwargs):
+                if jwt_obj.verify(expected_token_type=expected_token_type, **kwargs):
                     return jwt_obj.payload
             except usso_jwt.exceptions.JWTError as e:
                 exp = e
