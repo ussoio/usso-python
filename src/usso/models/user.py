@@ -11,18 +11,21 @@ class TokenType(StrEnum):
     SECURE_TOKEN = "secure"
     ONE_TIME_TOKEN = "one_time"
     TEMPORARY_TOKEN = "temporary"
-    MFA_TEMPORARY_TOKEN = "mfa_temporary"
 
 
 class UserData(BaseModel):
-    jti: str | None = None
-    token_type: TokenType | None = None
+    # JWT standard claims
     iss: str | None = None
+    sub: str | None = None
     aud: str | None = None
     iat: int | None = None
     nbf: int | None = None
     exp: int | None = None
-    sub: str | None = None
+    jti: str | None = None
+
+    # Custom claims
+    token_type: TokenType | None = None
+    session_id: str | None = None
     tenant_id: str | None = None
     workspace_id: str | None = None
     roles: list[str] | None = None
@@ -35,14 +38,16 @@ class UserData(BaseModel):
     def __init__(
         self,
         *,
-        jti: str | None = None,
-        token_type: TokenType | None = None,
         iss: str | None = None,
+        sub: str | None = None,
         aud: str | None = None,
         iat: int | None = None,
         nbf: int | None = None,
         exp: int | None = None,
-        sub: str | None = None,
+        jti: str | None = None,
+
+        token_type: TokenType | None = None,
+        session_id: str | None = None,
         tenant_id: str | None = None,
         workspace_id: str | None = None,
         roles: list[str] | None = None,
@@ -60,6 +65,7 @@ class UserData(BaseModel):
             nbf=nbf,
             exp=exp,
             sub=sub,
+            session_id=session_id,
             tenant_id=tenant_id,
             workspace_id=workspace_id,
             roles=roles,
