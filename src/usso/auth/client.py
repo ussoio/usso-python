@@ -60,7 +60,10 @@ class UssoAuth:
                 jwt_obj = usso_jwt.schemas.JWT(
                     token=token, config=jwk_config, payload_class=UserData
                 )
-                if jwt_obj.verify(expected_token_type=expected_token_type, **kwargs):
+                if jwt_obj.verify(
+                    expected_token_type=expected_token_type,
+                    **kwargs,
+                ):
                     return jwt_obj.payload
             except usso_jwt.exceptions.JWTError as e:
                 exp = e

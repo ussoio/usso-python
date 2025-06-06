@@ -42,7 +42,7 @@ def app(test_key: AbstractKey):
     @app.websocket("/ws")
     async def websocket_endpoint(
         websocket: WebSocket,
-        user: UserData = Depends(usso.jwt_access_security_ws),
+        user: UserData = Depends(usso.jwt_access_security_ws),  # noqa: B008
     ):
         await websocket.accept()
         await websocket.send_json({"msg": user.model_dump()})
