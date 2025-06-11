@@ -1,8 +1,7 @@
 import os
 
 import httpx
-
-from usso.core import is_expired
+from usso_jwt.schemas import JWT, JWTConfig
 
 from .base_session import BaseUssoSession
 
@@ -37,7 +36,10 @@ class UssoSession(httpx.Client, BaseUssoSession):
             json={"refresh_token": f"{self.refresh_token}"},
         )
         response.raise_for_status()
-        self.access_token = response.json().get("access_token")
+        self.access_token = JWT(
+            token=response.json().get("access_token"),
+            config=JWTConfig(jwk_url=f"{self.usso_url}/website/jwks.json"),
+        )
         self.headers.update({"Authorization": f"Bearer {self.access_token}"})
         return response.json()
 
@@ -45,7 +47,7 @@ class UssoSession(httpx.Client, BaseUssoSession):
         if self.api_key:
             return self
 
-        if not self.access_token or is_expired(self.access_token):
+        if not self.access_token or self.access_token.is_temporally_valid():
             self._refresh()
         return self
 

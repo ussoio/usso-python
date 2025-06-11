@@ -1,8 +1,8 @@
 import os
 
 import httpx
+from usso_jwt.schemas import JWT, JWTConfig
 
-from ..core import is_expired
 from .base_session import BaseUssoSession
 
 
@@ -49,9 +49,15 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         Helper function to process the response from refresh requests.
         """
         response.raise_for_status()
-        data = response.json()
-        self.access_token = data.get("access_token")
-        self._refresh_token = data.get("token", {}).get("refresh_token")
+        data: dict[str, str | dict[str, str]] = response.json()
+        self.access_token = JWT(
+            token=data.get("access_token"),
+            config=JWTConfig(jwk_url=f"{self.usso_url}/website/jwks.json"),
+        )
+        self._refresh_token = JWT(
+            token=data.get("token", {}).get("refresh_token"),
+            config=JWTConfig(jwk_url=f"{self.usso_url}/website/jwks.json"),
+        )
         if self.access_token:
             self.headers.update({
                 "Authorization": f"Bearer {self.access_token}"
@@ -98,7 +104,7 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         if hasattr(self, "api_key") and self.api_key:
             return self
 
-        if not self.access_token or is_expired(self.access_token):
+        if not self.access_token or self.access_token.is_temporally_valid():
             await self._refresh()
         return self
 
