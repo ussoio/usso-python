@@ -31,6 +31,7 @@ class UserData(BaseModel):
     roles: list[str] | None = None
     scopes: list[str] | None = None
     acr: str | None = None
+    amr: list[str] | None = None
     signing_level: str | None = None
 
     claims: dict | None = None
@@ -53,6 +54,7 @@ class UserData(BaseModel):
         roles: list[str] | None = None,
         scopes: list[str] | None = None,
         acr: str | None = None,
+        amr: list[str] | None = None,
         signing_level: str | None = None,
         **kwargs,
     ):
@@ -71,6 +73,7 @@ class UserData(BaseModel):
             roles=roles,
             scopes=scopes,
             acr=acr,
+            amr=amr,
             signing_level=signing_level,
         )
         self.claims = self.model_dump() | kwargs
