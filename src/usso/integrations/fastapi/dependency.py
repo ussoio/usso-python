@@ -16,12 +16,14 @@ class USSOAuthentication(UssoAuth):
         self,
         jwt_config: AvailableJwtConfigs | None = None,
         raise_exception: bool = True,
+        expected_token_type: str = "access",
     ):
         if jwt_config is None:
             jwt_config = AuthConfig()
 
         super().__init__(jwt_config=jwt_config)
         self.raise_exception = raise_exception
+        self.expected_token_type = expected_token_type
 
     def __call__(self, request: Request) -> UserData:
         return self.usso_access_security(request)
@@ -52,7 +54,9 @@ class USSOAuthentication(UssoAuth):
         token = self.get_request_jwt(request)
         if token:
             return self.user_data_from_token(
-                token, raise_exception=self.raise_exception
+                token,
+                raise_exception=self.raise_exception,
+                expected_token_type=self.expected_token_type,
             )
 
         _handle_exception(
@@ -71,7 +75,9 @@ class USSOAuthentication(UssoAuth):
         token = self.get_request_jwt(websocket)
         if token:
             return self.user_data_from_token(
-                token, raise_exception=self.raise_exception
+                token,
+                raise_exception=self.raise_exception,
+                expected_token_type=self.expected_token_type,
             )
         _handle_exception(
             "Unauthorized",
