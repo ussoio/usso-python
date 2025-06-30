@@ -34,9 +34,7 @@ class HeaderConfig(BaseModel):
             return headers.get(self.name)
         elif self.type == "Cookie":
             return cookies.get(self.name)
-        elif self.type == "Authorization":
-            authorization = headers.get("Authorization")
-        if self.type == "Authorization":
+        else:  # self.type == "Authorization":
             authorization = headers.get("Authorization")
             scheme, credentials = get_authorization_scheme_param(authorization)
             if scheme.lower() == self.name.lower():
