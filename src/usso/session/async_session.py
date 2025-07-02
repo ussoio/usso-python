@@ -52,11 +52,11 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         data: dict[str, str | dict[str, str]] = response.json()
         self.access_token = JWT(
             token=data.get("access_token"),
-            config=JWTConfig(jwk_url=f"{self.usso_url}/website/jwks.json"),
+            config=JWTConfig(jwks_url=f"{self.usso_url}/website/jwks.json"),
         )
         self._refresh_token = JWT(
             token=data.get("token", {}).get("refresh_token"),
-            config=JWTConfig(jwk_url=f"{self.usso_url}/website/jwks.json"),
+            config=JWTConfig(jwks_url=f"{self.usso_url}/website/jwks.json"),
         )
         if self.access_token:
             self.headers.update({

@@ -38,7 +38,7 @@ class UssoSession(httpx.Client, BaseUssoSession):
         response.raise_for_status()
         self.access_token = JWT(
             token=response.json().get("access_token"),
-            config=JWTConfig(jwk_url=f"{self.usso_url}/website/jwks.json"),
+            config=JWTConfig(jwks_url=f"{self.usso_url}/website/jwks.json"),
         )
         self.headers.update({"Authorization": f"Bearer {self.access_token}"})
         return response.json()

@@ -87,4 +87,4 @@ class UssoAuth:
         Raises:
             USSOException: If the API key is invalid
         """
-        return fetch_api_key_data(self.jwt_configs[0].jwk_url, api_key)
+        return fetch_api_key_data(self.jwt_configs[0].jwks_url, api_key)

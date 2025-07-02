@@ -48,7 +48,7 @@ class BaseUssoSession:
         self.usso_refresh_url = f"{usso_url}/auth/refresh"
         self._refresh_token = JWT(
             token=refresh_token,
-            config=JWTConfig(jwk_url=f"{self.usso_url}/website/jwks.json"),
+            config=JWTConfig(jwks_url=f"{self.usso_url}/website/jwks.json"),
         )
 
         self.access_token = None
@@ -67,10 +67,10 @@ class BaseUssoSession:
     def refresh_token(self):
         if (
             self._refresh_token
-            and self._refresh_token.verify(
+            and self._refresh_token.verify(  # noqa: W503
                 expected_token_type="refresh",
             )
-            and self._refresh_token.is_temporally_valid()
+            and self._refresh_token.is_temporally_valid()  # noqa: W503
         ):
             self._refresh_token = None
 

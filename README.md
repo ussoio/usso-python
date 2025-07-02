@@ -96,7 +96,7 @@ Then configure your app to verify tokens issued by this service, using its publi
 
 ```python
 JWTConfig(
-    jwk_url="http://localhost:8000/.well-known/jwks.json",
+    jwks_url="http://localhost:8000/.well-known/jwks.json",
     ...
 )
 ```

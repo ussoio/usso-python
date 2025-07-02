@@ -70,8 +70,8 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         Check if a user exists by phone. If not, create a new user
         and return it.
         """
-        if self.jwt_config.jwk_url:
-            domain = urlparse(self.jwt_config.jwk_url).netloc
+        if self.jwt_config.jwks_url:
+            domain = urlparse(self.jwt_config.jwks_url).netloc
         else:
             domain = "example.com"
         phone = user_data.phone

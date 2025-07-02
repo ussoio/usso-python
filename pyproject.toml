@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso"
-version = "0.28.14"
+version = "0.28.15"
 description = "A plug-and-play client for integrating universal single sign-on (SSO) with Python frameworks, enabling secure and seamless authentication across microservices."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -30,7 +30,7 @@ dependencies = [
   "singleton_package",
   "json-advanced",
   "httpx",
-  "usso-jwt>=0.1.16",
+  "usso-jwt>=0.2.0",
 ]
 
 [project.optional-dependencies]
