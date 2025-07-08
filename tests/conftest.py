@@ -1,10 +1,19 @@
 """Shared pytest fixtures for JWT testing."""
-
+import os
 import time
 
 import pytest
 from usso_jwt import sign
 from usso_jwt.algorithms import AbstractKey, EdDSAKey
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_debugpy():
+    if os.getenv("DEBUGPY", "False").lower() in ("true", "1", "yes"):
+        import debugpy
+
+        debugpy.listen(("0.0.0.0", 3020))
+        debugpy.wait_for_client()
 
 
 @pytest.fixture(scope="session")
