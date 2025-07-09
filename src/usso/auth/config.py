@@ -42,7 +42,7 @@ class HeaderConfig(BaseModel):
 
 
 class APIHeaderConfig(HeaderConfig):
-    verify_endpoint: str = "https://sso.usso.io/api_key/verify"
+    verify_endpoint: str = "https://sso.usso.io/api/sso/v1/apikeys/verify"
 
 
 class AuthConfig(usso_jwt.config.JWTConfig):

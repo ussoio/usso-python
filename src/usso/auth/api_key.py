@@ -1,5 +1,4 @@
 import logging
-from urllib.parse import urlparse
 
 import cachetools.func
 import httpx
@@ -19,12 +18,12 @@ def _handle_exception(error_type: str, **kwargs):
     logger.error(kwargs.get("message") or error_type)
 
 
-@cachetools.func.ttl_cache(maxsize=128, ttl=10 * 60)
-def fetch_api_key_data(jwks_url: str, api_key: str):
+@cachetools.func.ttl_cache(maxsize=128, ttl=60)
+def fetch_api_key_data(api_key_verify_url: str, api_key: str):
     """Fetch user data using an API key.
 
     Args:
-        jwks_url: The JWK URL to use for verification
+        api_key_verify_url: The API key verify URL to use for verification
         api_key: The API key to verify
 
     Returns:
@@ -34,9 +33,7 @@ def fetch_api_key_data(jwks_url: str, api_key: str):
         USSOException: If the API key is invalid or verification fails
     """
     try:
-        parsed = urlparse(jwks_url)
-        url = f"{parsed.scheme}://{parsed.netloc}/api_key/verify"
-        response = httpx.post(url, json={"api_key": api_key})
+        response = httpx.post(api_key_verify_url, json={"api_key": api_key})
         response.raise_for_status()
         return UserData(**response.json())
     except Exception as e:
