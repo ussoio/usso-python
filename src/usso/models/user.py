@@ -46,7 +46,6 @@ class UserData(BaseModel):
         nbf: int | None = None,
         exp: int | None = None,
         jti: str | None = None,
-
         token_type: TokenType | None = None,
         session_id: str | None = None,
         tenant_id: str | None = None,

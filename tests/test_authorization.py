@@ -1,6 +1,11 @@
 import pytest
 
-from src.usso.auth.authorization import check_access, is_path_match
+from src.usso.auth.authorization import (
+    check_access,
+    has_subset_scope,
+    is_path_match,
+    is_subset_scope,
+)
 
 
 @pytest.mark.parametrize(
@@ -165,3 +170,43 @@ def test_minimal_params_success():
 def test_minimal_params_fail():
     scopes = ["read:file?*"]
     assert check_access(scopes, "file", "create") is False
+
+
+def test_minimal_params_read_create_fail():
+    scopes = ["file"]
+    assert check_access(scopes, "file", "create") is False
+
+
+def test_scope_subset():
+    assert is_subset_scope(
+        subset_scope="read:media/files?user_id=123",
+        super_scope="read:media/files",
+    )
+    assert is_subset_scope(
+        subset_scope="read:media/files?user_id=123", super_scope="read:media/*"
+    )
+    assert not is_subset_scope(
+        subset_scope="create:media/files", super_scope="read:media/files"
+    )
+    assert not is_subset_scope(
+        subset_scope="update:media/files", super_scope="read:media/files"
+    )
+    assert not is_subset_scope(
+        subset_scope="read:media/files?user_id=123",
+        super_scope="read:media/files?user_id=456",
+    )
+    assert not is_subset_scope(
+        subset_scope="read:media/files?user_id=123",
+        super_scope="read:media/files?workspace_id=123",
+    )
+    assert is_subset_scope(subset_scope="read:files", super_scope="read:*")
+    assert is_subset_scope(
+        subset_scope="read:files", super_scope="read://files"
+    )
+
+    assert has_subset_scope(
+        subset_scope="files", user_scopes=["read:files", "create:files"]
+    )
+    assert not is_subset_scope(
+        subset_scope="create:files", super_scope="files"
+    )

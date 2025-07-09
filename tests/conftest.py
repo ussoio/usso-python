@@ -1,4 +1,5 @@
 """Shared pytest fixtures for JWT testing."""
+
 import os
 import time
 

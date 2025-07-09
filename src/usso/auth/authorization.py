@@ -1,4 +1,5 @@
 import fnmatch
+import logging
 from urllib.parse import parse_qs, urlparse
 
 PRIVILEGE_LEVELS = {
@@ -136,7 +137,7 @@ def is_authorized(
         return False
 
     if requested_action:
-        user_level = PRIVILEGE_LEVELS.get(user_action or "*", 999)
+        user_level = PRIVILEGE_LEVELS.get(user_action or "read", 10)
         req_level = PRIVILEGE_LEVELS.get(requested_action, 0)
         return user_level >= req_level
 
@@ -180,4 +181,37 @@ def check_access(
                 return True
             print(f"auth failed {filter}, {scope}")
 
+    return False
+
+
+def is_subset_scope(*, subset_scope: str, super_scope: str) -> bool:
+    child_action, child_path, child_filters = parse_scope(subset_scope)
+    parent_action, parent_path, parent_filters = parse_scope(super_scope)
+
+    # 1. Compare privilege levels
+    child_level = PRIVILEGE_LEVELS.get(child_action or "read", 10)
+    parent_level = PRIVILEGE_LEVELS.get(parent_action or "read", 10)
+    if parent_level < child_level:
+        return False
+
+    # 2. Compare path
+    child_path_str = "/".join(child_path)
+    parent_path_str = "/".join(parent_path)
+    if not is_path_match(parent_path_str, child_path_str):
+        return False
+
+    # 3. Compare filters: parent_filters ⊆ child_filters
+    for k, v in parent_filters.items():
+        if child_filters.get(k) != v:
+            return False
+
+    logging.error(f"{parent_level}, {child_level}")
+
+    return True
+
+
+def has_subset_scope(*, subset_scope: str, user_scopes: list[str]) -> bool:
+    for user_scope in user_scopes:
+        if is_subset_scope(subset_scope=subset_scope, super_scope=user_scope):
+            return True
     return False
