@@ -210,7 +210,12 @@ def is_subset_scope(*, subset_scope: str, super_scope: str) -> bool:
     return True
 
 
-def has_subset_scope(*, subset_scope: str, user_scopes: list[str]) -> bool:
+def has_subset_scope(
+    *, subset_scope: str, user_scopes: list[str] | str | None
+) -> bool:
+    user_scopes = user_scopes or []
+    if isinstance(user_scopes, str):
+        user_scopes = [user_scopes]
     for user_scope in user_scopes:
         if is_subset_scope(subset_scope=subset_scope, super_scope=user_scope):
             return True
