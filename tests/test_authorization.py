@@ -210,3 +210,8 @@ def test_scope_subset():
     assert not is_subset_scope(
         subset_scope="create:files", super_scope="files"
     )
+    assert not is_subset_scope(subset_scope="create:files", super_scope="*")
+    assert is_subset_scope(subset_scope="create:files", super_scope="*:*")
+    assert is_subset_scope(
+        subset_scope="create:files", super_scope="*://files"
+    )

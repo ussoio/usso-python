@@ -1,6 +1,6 @@
 import fnmatch
 import logging
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs
 
 PRIVILEGE_LEVELS = {
     "read": 10,
@@ -33,12 +33,22 @@ def parse_scope(scope: str) -> tuple[str, list[str], dict[str, str]]:
         - filters: dict[str, str]
     """
 
-    parsed = urlparse(scope)
-    path = parsed.path
-    query = parsed.query
+    colon_idx = scope.find(":")
+    question_idx = scope.find("?")
+    if question_idx == -1:
+        question_idx = len(scope)
+
+    if colon_idx != -1 and colon_idx < question_idx:
+        action = scope[:colon_idx]
+        resource_path = scope[colon_idx + 1 : question_idx]
+    else:
+        action = ""
+        resource_path = scope[:question_idx]
+
+    query = scope[question_idx + 1 :]
     filters = {k: v[0] for k, v in parse_qs(query).items()}
-    path_parts = path.split("/") if path else ["*"]
-    return parsed.scheme, path_parts, filters
+    resource_path_parts = resource_path.split("/") if resource_path else ["*"]
+    return action, resource_path_parts, filters
 
 
 def is_path_match(
