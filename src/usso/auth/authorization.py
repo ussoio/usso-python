@@ -1,5 +1,4 @@
 import fnmatch
-import logging
 from urllib.parse import parse_qs
 
 PRIVILEGE_LEVELS = {
@@ -214,8 +213,6 @@ def is_subset_scope(*, subset_scope: str, super_scope: str) -> bool:
     for k, v in parent_filters.items():
         if child_filters.get(k) != v:
             return False
-
-    logging.error(f"{parent_level}, {child_level}")
 
     return True
 
