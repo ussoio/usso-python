@@ -119,7 +119,7 @@ def is_path_match(
     return True
 
 
-def is_filter_match(user_filters: dict, requested_filters: dict):
+def is_filter_match(user_filters: dict, requested_filters: dict) -> bool:
     """All user filters must match requested filters."""
     for k, v in user_filters.items():
         if k not in requested_filters or not fnmatch.fnmatch(
@@ -136,7 +136,7 @@ def is_authorized(
     reuested_filter: dict[str, str] | None = None,
     *,
     strict: bool = False,
-):
+) -> bool:
     user_action, user_path, user_filters = parse_scope(user_scope)
 
     if not is_path_match(user_path, requested_path, strict=strict):
@@ -160,7 +160,7 @@ def check_access(
     *,
     filters: list[dict[str, str]] | dict[str, str] | None = None,
     strict: bool = False,
-):
+) -> bool:
     """
     Check if the user has the required access to a resource.
 
@@ -188,7 +188,6 @@ def check_access(
                 strict=strict,
             ):
                 return True
-            print(f"auth failed {filter}, {scope}")
 
     return False
 
