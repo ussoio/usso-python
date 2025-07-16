@@ -1,6 +1,6 @@
 import pytest
 
-from src.usso.auth.authorization import (
+from src.usso.authorization import (
     check_access,
     has_subset_scope,
     is_path_match,

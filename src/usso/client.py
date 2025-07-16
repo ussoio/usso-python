@@ -3,10 +3,10 @@ import logging
 import usso_jwt.exceptions
 import usso_jwt.schemas
 
-from ..exceptions import _handle_exception
-from ..models.user import UserData
 from .api_key import fetch_api_key_data
 from .config import AuthConfig, AvailableJwtConfigs
+from .exceptions import _handle_exception
+from .user import UserData
 
 logger = logging.getLogger("usso")
 

@@ -4,8 +4,8 @@ from typing import Any, Literal, Union
 import usso_jwt.config
 from pydantic import BaseModel, model_validator
 
-from ..models.user import UserData
-from ..utils.string_utils import get_authorization_scheme_param
+from .user import UserData
+from .utils.string_utils import get_authorization_scheme_param
 
 
 class HeaderConfig(BaseModel):

@@ -5,9 +5,10 @@ with Python frameworks, enabling secure and seamless authentication
 across microservices.
 """
 
-from .auth import APIHeaderConfig, AuthConfig, HeaderConfig, UssoAuth
+from .client import AuthConfig, UssoAuth
+from .config import APIHeaderConfig, HeaderConfig
 from .exceptions import USSOException
-from .models.user import UserData
+from .user import UserData
 
 __version__ = "0.28.0"
 

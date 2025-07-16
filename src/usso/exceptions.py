@@ -8,17 +8,33 @@ error_messages = {
     "expired_signature": "Unauthorized. The JWT is expired.",
     "unauthorized": "Unauthorized",
     "invalid_token_type": "Unauthorized. Token type must be 'access'",
+    "permission_denied": "Permission denied",
 }
 
 
 class USSOException(Exception):
-    def __init__(self, status_code: int, error: str, message: str = None):
+    def __init__(
+        self, status_code: int, error: str, message: dict | None = None
+    ):
         self.status_code = status_code
         self.error = error
         self.message = message
         if message is None:
             self.message = error_messages[error]
         super().__init__(message)
+
+
+class PermissionDenied(USSOException):
+    def __init__(
+        self,
+        error: str = "permission_denied",
+        message: dict = None,
+        detail: str = None,
+        **kwargs,
+    ):
+        super().__init__(
+            403, error=error, message=message, detail=detail, **kwargs
+        )
 
 
 def _handle_exception(error_type: str, **kwargs):

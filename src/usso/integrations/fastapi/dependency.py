@@ -2,11 +2,10 @@ import logging
 
 from fastapi import Request, WebSocket
 
-from ...auth import UssoAuth
-from ...auth.config import AuthConfig, AvailableJwtConfigs
+from ...client import UssoAuth
+from ...config import AuthConfig, AvailableJwtConfigs
 from ...exceptions import _handle_exception
-from ...models.user import UserData
-from ...utils.method_utils import instance_method
+from ...user import UserData
 
 logger = logging.getLogger("usso")
 
@@ -28,7 +27,6 @@ class USSOAuthentication(UssoAuth):
     def __call__(self, request: Request) -> UserData:
         return self.usso_access_security(request)
 
-    @instance_method
     def get_request_jwt(self, request: Request | WebSocket) -> str | None:
         for jwt_config in self.jwt_configs:
             token = jwt_config.get_jwt(request)
@@ -36,7 +34,6 @@ class USSOAuthentication(UssoAuth):
                 return token
         return None
 
-    @instance_method
     def get_request_api_key(self, request: Request | WebSocket) -> str | None:
         for jwt_config in self.jwt_configs:
             token = jwt_config.get_api_key(request)

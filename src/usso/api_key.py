@@ -3,8 +3,8 @@ import logging
 import cachetools.func
 import httpx
 
-from ..exceptions import USSOException
-from ..models.user import UserData
+from .exceptions import USSOException
+from .user import UserData
 
 logger = logging.getLogger("usso")
 
