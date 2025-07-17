@@ -34,6 +34,7 @@ from src.usso.authorization import (
         ("files", "files/transactions", False),
         ("files", "media/files/transactions", False),
         ("media/files", "media/files/transactions", False),
+        ("finance/*/*", "wallet", False),
     ],
 )
 def test_path_match(user_path, requested_path, expected):

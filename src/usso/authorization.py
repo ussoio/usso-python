@@ -84,6 +84,7 @@ def is_path_match(
         ("files", "files/transactions", False),
         ("files", "media/files/transactions", False),
         ("media/files", "media/files/transactions", False),
+        ("finance/*/*", "wallet", False),
     ]
     """
     if isinstance(user_path, str):
@@ -100,9 +101,13 @@ def is_path_match(
     else:
         raise ValueError(f"Invalid path type: {type(requested_path)}")
 
+    wildcard_found = False
     # Match resource name (rightmost)
     if not fnmatch.fnmatch(req_parts[-1], user_parts[-1]):
         return False
+
+    if "*" in user_parts[-1]:
+        wildcard_found = True
 
     # Match rest of the path from right to left
     user_path_parts = user_parts[:-1]
@@ -115,6 +120,14 @@ def is_path_match(
     ):
         if r and u and r != "*" and not fnmatch.fnmatch(r, u):
             return False
+        if "*" in u:
+            wildcard_found = True
+
+    offset = len(user_path_parts) - len(req_path_parts)
+    if offset > 0 and wildcard_found:
+        for u in user_path_parts[-offset:]:
+            if u != "*":
+                return False
 
     return True
 
