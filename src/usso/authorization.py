@@ -129,6 +129,73 @@ def is_filter_match(user_filters: dict, requested_filters: dict) -> bool:
     return True
 
 
+def get_scope_filters(
+    action: str,
+    resource: str,
+    user_scopes: list[str],
+) -> list[dict]:
+    """
+    Return filters extracted from user scopes that:
+
+    - Have equal or higher privilege level than the requested action.
+    - Match the requested resource path.
+    """
+    matched_filters: list[dict] = []
+    action_level = PRIVILEGE_LEVELS.get(action, 0)
+    requested_parts = resource.split("/")
+
+    for scope in user_scopes:
+        scope_action, scope_path, scope_filters = parse_scope(scope)
+
+        scope_level = PRIVILEGE_LEVELS.get(scope_action, 0)
+        if scope_level < action_level:
+            continue
+
+        if not is_path_match(scope_path, requested_parts):
+            continue
+
+        matched_filters.append(scope_filters)
+
+    return matched_filters
+
+
+def broadest_scope_filter(filters: list[dict]) -> dict:
+    """
+    Return the broadest scope filter. It is used to select the most
+    restrictive filter from the list of filters. by assigning a score
+    to each filter based on the restriction bits. the filter with the
+    lowest score is the most restrictive.
+
+    filters = [
+        {"tenant_id": "t1"},                           # score = 1
+        {"workspace_id": "w1"},                        # score = 2
+        {"user_id": "u1"},                             # score = 4
+        {"uid": "abc"},                                # score = 8
+        {"tenant_id": "t1", "user_id": "u1"},          # score = 1 + 4 = 5
+        {"workspace_id": "w1", "uid": "abc"},          # score = 2 + 8 = 10
+        {},                                            # score = 0
+    ]
+    """
+    RESTRICTION_BITS = {
+        "tenant_id": 1 << 0,  # 1
+        "workspace_id": 1 << 1,  # 2
+        "user_id": 1 << 2,  # 4
+        "uid": 1 << 3,  # 8
+    }
+
+    DEFAULT_BIT = 1 << 4
+
+    if not filters:
+        return {}
+
+    def restriction_score(f: dict) -> int:
+        if not f:
+            return 0
+        return sum(RESTRICTION_BITS.get(k, DEFAULT_BIT) for k in f)
+
+    return min(filters, key=restriction_score)
+
+
 def is_authorized(
     user_scope: str,
     requested_path: str,
