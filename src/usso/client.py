@@ -59,10 +59,19 @@ class UssoAuth:
             USSOException: If token is invalid and raise_exception is True
         """
         exp = None
-        for jwk_config in self.jwt_configs:
+
+        if self.from_base_usso_url:
             try:
                 jwt_obj = usso_jwt.schemas.JWT(
-                    token=token, config=jwk_config, payload_class=UserData
+                    token=token,
+                    config=self.jwt_configs[0],
+                    payload_class=UserData,
+                )
+                iss = jwt_obj.unverified_payload.iss
+                iss_domain = urlparse(iss).netloc
+                jwt_obj.config.jwks_url = (
+                    f"{self.from_base_usso_url}/.well-known/jwks.json?"
+                    f"domain={iss_domain}"
                 )
                 if jwt_obj.verify(
                     expected_token_type=expected_token_type,
@@ -72,16 +81,10 @@ class UssoAuth:
             except usso_jwt.exceptions.JWTError as e:
                 exp = e
 
-        if self.from_base_usso_url:
+        for jwk_config in self.jwt_configs:
             try:
                 jwt_obj = usso_jwt.schemas.JWT(
                     token=token, config=jwk_config, payload_class=UserData
-                )
-                iss = jwt_obj.unverified_payload.iss
-                iss_domain = urlparse(iss).netloc
-                jwt_obj.config.jwks_url = (
-                    f"{self.from_base_usso_url}/.well-known/jwks.json?"
-                    f"domain={iss_domain}"
                 )
                 if jwt_obj.verify(
                     expected_token_type=expected_token_type,
