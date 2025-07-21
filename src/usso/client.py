@@ -69,10 +69,12 @@ class UssoAuth:
                 )
                 iss = jwt_obj.unverified_payload.iss
                 iss_domain = urlparse(iss).netloc
-                jwt_obj.config.jwks_url = (
+                jwks_url = (
                     f"{self.from_base_usso_url}/.well-known/jwks.json?"
                     f"domain={iss_domain}"
                 )
+                logging.info(f"{iss_domain=} {jwks_url=}")
+                jwt_obj.config.jwks_url = jwks_url
                 if jwt_obj.verify(
                     expected_token_type=expected_token_type,
                     **kwargs,
