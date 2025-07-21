@@ -22,11 +22,6 @@ from src.usso.authorization import (
         ("//files", "file-manager/files", True),
         ("//files", "media/file-manager/files", True),
         ("media//files", "media/file-manager/files", True),
-        (
-            "media//files",
-            "media/files",
-            True,
-        ),  # !! atention it matches because the middle part is empty
         ("media/files/*", "media/files/transactions", True),
         ("*/*/transactions", "media/files/transactions", True),
         ("media/*/transactions", "media/images/transactions", True),
@@ -35,14 +30,17 @@ from src.usso.authorization import (
         ("files", "media/files/transactions", False),
         ("media/files", "media/files/transactions", False),
         ("finance/*/*", "wallet", False),
+        ("media//files", "media/files", True),
     ],
 )
-def test_path_match(user_path, requested_path, expected):
+def test_path_match(
+    user_path: str, requested_path: str, expected: bool
+) -> None:
     assert is_path_match(user_path, requested_path, strict=False) == expected
 
 
 # Define pytest tests
-def test_exact_match_id():
+def test_exact_match_id() -> None:
     scopes = ["read:media/file-manager/files?uid=file123"]
     assert (
         check_access(
@@ -50,9 +48,9 @@ def test_exact_match_id():
             "files",
             action="read",
             filters=[
-                dict(namespace="media"),
-                dict(service="file-manager"),
-                dict(uid="file123"),
+                {"namespace": "media"},
+                {"service": "file-manager"},
+                {"uid": "file123"},
             ],
         )
         is True
@@ -60,7 +58,7 @@ def test_exact_match_id():
 
 
 # Define pytest tests
-def test_wildcard():
+def test_wildcard() -> None:
     scopes = [
         "update:media/files/transactions?user_id=abc",
         "read:media/files/*",
@@ -86,7 +84,7 @@ def test_wildcard():
     )
 
 
-def test_insufficient_privilege():
+def test_insufficient_privilege() -> None:
     scopes = ["read:media/files/file:uid:file123"]
     assert (
         check_access(
@@ -94,33 +92,33 @@ def test_insufficient_privilege():
             "file",
             "update",
             filters=[
-                dict(namespace="finance"),
-                dict(service="wallet"),
-                dict(workspace_id="ws_7"),
+                {"namespace": "finance"},
+                {"service": "wallet"},
+                {"workspace_id": "ws_7"},
             ],
         )
         is False
     )
 
 
-def test_wildcard_match():
+def test_wildcard_match() -> None:
     scopes = ["manage:media/files/file?*"]
     assert (
         check_access(
             scopes,
             "file",
             "update",
-            filters=dict(
-                namespace="finance",
-                service="wallet",
-                workspace_id="ws_7",
-            ),
+            filters={
+                "namespace": "finance",
+                "service": "wallet",
+                "workspace_id": "ws_7",
+            },
         )
         is True
     )
 
 
-def test_match_by_user_id():
+def test_match_by_user_id() -> None:
     scopes = ["manage:finance/wallet/transaction?user=user_1"]
     assert (
         check_access(
@@ -128,9 +126,9 @@ def test_match_by_user_id():
             "transaction",
             "update",
             filters=[
-                dict(namespace="finance"),
-                dict(service="wallet"),
-                dict(workspace_id="ws_7"),
+                {"namespace": "finance"},
+                {"service": "wallet"},
+                {"workspace_id": "ws_7"},
             ],
         )
         is False
@@ -140,13 +138,13 @@ def test_match_by_user_id():
             scopes,
             "transaction",
             "update",
-            filters=dict(namespace="finance", user="user_1"),
+            filters={"namespace": "finance", "user": "user_1"},
         )
         is True
     )
 
 
-def test_match_by_workspace_id():
+def test_match_by_workspace_id() -> None:
     scopes = ["delete:finance/wallet/transaction?workspace_id=ws_7"]
     assert (
         check_access(
@@ -154,31 +152,31 @@ def test_match_by_workspace_id():
             "transaction",
             "delete",
             filters=[
-                dict(namespace="finance"),
-                dict(service="wallet"),
-                dict(workspace_id="ws_7"),
+                {"namespace": "finance"},
+                {"service": "wallet"},
+                {"workspace_id": "ws_7"},
             ],
         )
         is True
     )
 
 
-def test_minimal_params_success():
+def test_minimal_params_success() -> None:
     scopes = ["create:file?*"]
     assert check_access(scopes, "file", "create") is True
 
 
-def test_minimal_params_fail():
+def test_minimal_params_fail() -> None:
     scopes = ["read:file?*"]
     assert check_access(scopes, "file", "create") is False
 
 
-def test_minimal_params_read_create_fail():
+def test_minimal_params_read_create_fail() -> None:
     scopes = ["file"]
     assert check_access(scopes, "file", "create") is False
 
 
-def test_scope_subset():
+def test_scope_subset() -> None:
     assert is_subset_scope(
         subset_scope="read:media/files?user_id=123",
         super_scope="read:media/files",

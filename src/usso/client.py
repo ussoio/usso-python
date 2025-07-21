@@ -22,7 +22,7 @@ class UssoAuth:
         self,
         *,
         jwt_config: AvailableJwtConfigs | None = None,
-    ):
+    ) -> None:
         """Initialize the USSO authentication client.
 
         Args:
@@ -38,7 +38,7 @@ class UssoAuth:
         *,
         expected_token_type: str | None = "access",
         raise_exception: bool = True,
-        **kwargs,
+        **kwargs: dict,
     ) -> UserData | None:
         """Get user data from a JWT token.
 

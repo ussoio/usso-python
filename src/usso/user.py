@@ -55,8 +55,8 @@ class UserData(BaseModel):
         acr: str | None = None,
         amr: list[str] | None = None,
         signing_level: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: dict,
+    ) -> None:
         super().__init__(
             jti=jti,
             token_type=token_type,
@@ -109,9 +109,9 @@ class UserData(BaseModel):
         self,
         *,
         mode: Literal["json", "python"] | str = "python",
-        include=None,
-        exclude=None,
-        context: Any | None = None,
+        include: set[str] | list[str] | None = None,
+        exclude: set[str] | list[str] | None = None,
+        context: object | None = None,
         by_alias: bool | None = None,
         exclude_unset: bool = False,
         exclude_defaults: bool = False,
@@ -120,7 +120,7 @@ class UserData(BaseModel):
         warnings: bool | Literal["none", "warn", "error"] = True,
         fallback: Callable[[Any], Any] | None = None,
         serialize_as_any: bool = False,
-    ):
+    ) -> dict:
         return super().model_dump(
             mode=mode,
             include=include,

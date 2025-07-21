@@ -9,12 +9,12 @@ from usso_jwt.algorithms import AbstractKey, EdDSAKey
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_debugpy():
+def setup_debugpy() -> None:
     if os.getenv("DEBUGPY", "False").lower() in ("true", "1", "yes"):
-        import debugpy
+        import debugpy  # noqa: T100
 
-        debugpy.listen(("0.0.0.0", 3020))
-        debugpy.wait_for_client()
+        debugpy.listen(("127.0.0.1", 3020))  # noqa: T100
+        debugpy.wait_for_client()  # noqa: T100
 
 
 @pytest.fixture(scope="session")
@@ -62,7 +62,7 @@ def test_valid_token(
     test_valid_payload: dict,
     test_header: dict,
     test_key: AbstractKey,
-):
+) -> str:
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,

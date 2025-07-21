@@ -14,8 +14,8 @@ class UssoSession(httpx.Client, BaseUssoSession):
         refresh_token: str | None = os.getenv("USSO_REFRESH_TOKEN"),
         usso_url: str | None = os.getenv("USSO_URL"),
         client: "UssoSession" = None,
-        **kwargs,
-    ):
+        **kwargs: dict,
+    ) -> None:
         httpx.Client.__init__(self, **kwargs)
 
         BaseUssoSession.__init__(
@@ -28,7 +28,7 @@ class UssoSession(httpx.Client, BaseUssoSession):
         if not self.api_key:
             self._refresh()
 
-    def _refresh(self):
+    def _refresh(self) -> dict:
         assert self.refresh_token, "refresh_token is required"
 
         response = httpx.post(
@@ -43,7 +43,7 @@ class UssoSession(httpx.Client, BaseUssoSession):
         self.headers.update({"Authorization": f"Bearer {self.access_token}"})
         return response.json()
 
-    def get_session(self):
+    def get_session(self) -> "UssoSession":
         if self.api_key:
             return self
 
@@ -51,6 +51,8 @@ class UssoSession(httpx.Client, BaseUssoSession):
             self._refresh()
         return self
 
-    def _request(self, method: str, url: str, **kwargs):
+    def _request(
+        self, method: str, url: str, **kwargs: dict
+    ) -> httpx.Response:
         self.get_session()
         return super().request(self, method, url, **kwargs)

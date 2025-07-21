@@ -14,30 +14,44 @@ error_messages = {
 
 class USSOException(Exception):
     def __init__(
-        self, status_code: int, error: str, message: dict | None = None
-    ):
+        self,
+        status_code: int,
+        error: str,
+        detail: str | None = None,
+        message: dict | None = None,
+        **kwargs: dict,
+    ) -> None:
         self.status_code = status_code
         self.error = error
-        self.message = message
+        msg: dict = {}
         if message is None:
-            self.message = error_messages[error]
-        super().__init__(message)
+            if detail:
+                msg["en"] = detail
+            else:
+                msg["en"] = error_messages.get(error, error)
+        else:
+            msg = message
+
+        self.message = msg
+        self.detail = detail or str(self.message)
+        self.data = kwargs
+        super().__init__(detail)
 
 
 class PermissionDenied(USSOException):
     def __init__(
         self,
         error: str = "permission_denied",
-        message: dict = None,
-        detail: str = None,
-        **kwargs,
-    ):
+        detail: str | None = None,
+        message: dict | None = None,
+        **kwargs: dict,
+    ) -> None:
         super().__init__(
             403, error=error, message=message, detail=detail, **kwargs
         )
 
 
-def _handle_exception(error_type: str, **kwargs):
+def _handle_exception(error_type: str, **kwargs: dict) -> None:
     """Handle JWT-related exceptions."""
     if kwargs.get("raise_exception", True):
         raise USSOException(

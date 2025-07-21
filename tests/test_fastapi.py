@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 import httpx
 import pytest
 import pytest_asyncio
-from fastapi import Depends, WebSocket
+from fastapi import Depends, FastAPI, WebSocket
 from starlette.testclient import TestClient
 from usso_jwt.algorithms import AbstractKey
 
@@ -18,7 +18,7 @@ from src.usso.integrations.fastapi import (
 
 
 @pytest.fixture(scope="session")
-def app(test_key: AbstractKey):
+def app(test_key: AbstractKey) -> FastAPI:
     import fastapi
 
     os.environ["JWT_CONFIG"] = json.dumps({
@@ -36,14 +36,14 @@ def app(test_key: AbstractKey):
     @app.get("/user")
     async def get_user(
         user: UserData = Depends(usso.usso_access_security),  # noqa: B008
-    ):
+    ) -> dict:
         return user.model_dump()
 
     @app.websocket("/ws")
     async def websocket_endpoint(
         websocket: WebSocket,
         user: UserData = Depends(usso.jwt_access_security_ws),  # noqa: B008
-    ):
+    ) -> None:
         await websocket.accept()
         await websocket.send_json({"msg": user.model_dump()})
         # await websocket.send_json({"msg": "Hello WebSocket"})
@@ -53,7 +53,7 @@ def app(test_key: AbstractKey):
 
 
 @pytest_asyncio.fixture(scope="session")
-async def client(app) -> AsyncGenerator[httpx.AsyncClient]:
+async def client(app: FastAPI) -> AsyncGenerator[httpx.AsyncClient]:
     """Fixture to provide an AsyncClient for FastAPI app."""
 
     async with httpx.AsyncClient(
@@ -64,14 +64,13 @@ async def client(app) -> AsyncGenerator[httpx.AsyncClient]:
 
 
 @pytest.mark.asyncio
-async def test_get_user_no_token(client: httpx.AsyncClient):
+async def test_get_user_no_token(client: httpx.AsyncClient) -> None:
     response = await client.get("/user")
-    print(response.json())
     assert response.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_get_user_with_invalid_token(client: httpx.AsyncClient):
+async def test_get_user_with_invalid_token(client: httpx.AsyncClient) -> None:
     response = await client.get(
         "/user",
         headers={"Authorization": "Bearer test"},
@@ -84,7 +83,7 @@ async def test_get_user_with_token(
     client: httpx.AsyncClient,
     test_valid_token: str,
     test_valid_payload: dict,
-):
+) -> None:
     response = await client.get(
         "/user",
         headers={"Authorization": f"Bearer {test_valid_token}"},
@@ -93,7 +92,11 @@ async def test_get_user_with_token(
     assert response.json().get("claims") == test_valid_payload
 
 
-def test_websocket(app, test_valid_token: str, test_valid_payload: dict):
+def test_websocket(
+    app: FastAPI,
+    test_valid_token: str,
+    test_valid_payload: dict,
+) -> None:
     client = TestClient(app)
     with client.websocket_connect(
         "/ws", headers={"Authorization": f"Bearer {test_valid_token}"}

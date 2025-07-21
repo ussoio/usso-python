@@ -45,7 +45,7 @@ all = [
   "check-manifest",
   "pytest",
   "pytest_asyncio",
-  "coverage"
+  "coverage",
 ]
 
 [project.urls]
@@ -69,7 +69,13 @@ unsafe-fixes = true
 preview = true
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B"]
+select = ["E", "F", "W", "I", "UP", "B", "T", "C", "A", "ANN"]
 
 [tool.ruff.format]
 quote-style = "double"
+
+[tool.mypy]
+python_version = "3.13"
+ignore_missing_imports = true
+check_untyped_defs = false
+disallow_untyped_defs = false

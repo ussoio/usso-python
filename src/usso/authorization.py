@@ -26,6 +26,9 @@ def parse_scope(scope: str) -> tuple[str, list[str], dict[str, str]]:
         "*:*" ->
             ("*", ["*"], {})
 
+        "media//files" ->
+            ("", ["media", "*", "files"], {})
+
     Returns:
         - action: str (could be empty string if no scheme present)
         - path_parts: list[str]
@@ -47,7 +50,43 @@ def parse_scope(scope: str) -> tuple[str, list[str], dict[str, str]]:
     query = scope[question_idx + 1 :]
     filters = {k: v[0] for k, v in parse_qs(query).items()}
     resource_path_parts = resource_path.split("/") if resource_path else ["*"]
-    return action, resource_path_parts, filters
+    return action, [rp or "*" for rp in resource_path_parts], filters
+
+
+def _normalize_path(path: list[str] | str) -> list[str]:
+    if isinstance(path, str):
+        return path.split("/")
+    elif isinstance(path, list):
+        return path
+    else:
+        raise ValueError(f"Invalid path type: {type(path)}")
+
+
+def _match_path_parts(
+    user_parts: list[str], req_parts: list[str], strict: bool
+) -> bool:
+    wildcard_found = False
+    # Match resource name (rightmost)
+    if not fnmatch.fnmatch(req_parts[-1], user_parts[-1]):
+        return False
+    if "*" in user_parts[-1]:
+        wildcard_found = True
+    # Match rest of the path from right to left
+    user_path_parts = user_parts[:-1]
+    req_path_parts = req_parts[:-1]
+    for u, r in zip(
+        reversed(user_path_parts), reversed(req_path_parts), strict=strict
+    ):
+        if r and u and r != "*" and not fnmatch.fnmatch(r, u):
+            return False
+        if "*" in u:
+            wildcard_found = True
+    offset = len(user_path_parts) - len(req_path_parts)
+    if offset > 0 and wildcard_found:
+        for u in user_path_parts[:offset]:
+            if u != "*":
+                return False
+    return True
 
 
 def is_path_match(
@@ -57,79 +96,10 @@ def is_path_match(
 ) -> bool:
     """
     Match resource paths from right to left, supporting wildcards (*).
-
-    Rules:
-    - The final resource name must match exactly or via fnmatch.
-    - Upper-level path parts are matched from right to left.
-    - Wildcards are allowed in any part.
-
-    Examples = [
-        ("files", "files", True),
-        ("file-manager/files", "files", True),
-        ("media/file-manager/files", "files", True),
-        ("media//files", "files", True),
-        ("media//files", "file-manager/files", True),
-        ("files", "file-manager/files", True),
-        ("*/files", "file-manager/files", True),
-        ("*//files", "file-manager/files", True),
-        ("//files", "file-manager/files", True),
-        ("//files", "media/file-manager/files", True),
-        ("media//files", "media/file-manager/files", True),
-        ("media/files/*", "media/files/transactions", True),
-        ("*/*/transactions", "media/files/transactions", True),
-        ("media/*/transactions", "media/images/transactions", True),
-        ("media//files", "media/files", True), # attention
-
-        ("files", "file", False),
-        ("files", "files/transactions", False),
-        ("files", "media/files/transactions", False),
-        ("media/files", "media/files/transactions", False),
-        ("finance/*/*", "wallet", False),
-    ]
     """
-    if isinstance(user_path, str):
-        user_parts = user_path.split("/")
-    elif isinstance(user_path, list):
-        user_parts = user_path
-    else:
-        raise ValueError(f"Invalid path type: {type(user_path)}")
-
-    if isinstance(requested_path, str):
-        req_parts = requested_path.split("/")
-    elif isinstance(requested_path, list):
-        req_parts = requested_path
-    else:
-        raise ValueError(f"Invalid path type: {type(requested_path)}")
-
-    wildcard_found = False
-    # Match resource name (rightmost)
-    if not fnmatch.fnmatch(req_parts[-1], user_parts[-1]):
-        return False
-
-    if "*" in user_parts[-1]:
-        wildcard_found = True
-
-    # Match rest of the path from right to left
-    user_path_parts = user_parts[:-1]
-    req_path_parts = req_parts[:-1]
-
-    for u, r in zip(
-        reversed(user_path_parts),
-        reversed(req_path_parts),
-        strict=strict,
-    ):
-        if r and u and r != "*" and not fnmatch.fnmatch(r, u):
-            return False
-        if "*" in u:
-            wildcard_found = True
-
-    offset = len(user_path_parts) - len(req_path_parts)
-    if offset > 0 and wildcard_found:
-        for u in user_path_parts[-offset:]:
-            if u != "*":
-                return False
-
-    return True
+    user_parts = _normalize_path(user_path)
+    req_parts = _normalize_path(requested_path)
+    return _match_path_parts(user_parts, req_parts, strict)
 
 
 def is_filter_match(user_filters: dict, requested_filters: dict) -> bool:
@@ -222,7 +192,7 @@ def is_authorized(
     if not is_path_match(user_path, requested_path, strict=strict):
         return False
 
-    if not is_filter_match(user_filters, reuested_filter):
+    if not is_filter_match(user_filters, reuested_filter or {}):
         return False
 
     if requested_action:
@@ -256,15 +226,15 @@ def check_access(
     if isinstance(filters, dict):
         filters = [{k: v} for k, v in filters.items()]
     elif filters is None:
-        filters = ["*"]
+        filters = [{}]
 
     for scope in user_scopes:
-        for filter in filters:
+        for filt in filters:
             if is_authorized(
                 user_scope=scope,
                 requested_path=resource_path,
                 requested_action=action,
-                reuested_filter=filter,
+                reuested_filter=filt,
                 strict=strict,
             ):
                 return True

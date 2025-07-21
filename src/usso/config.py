@@ -13,7 +13,7 @@ class HeaderConfig(BaseModel):
     name: str = "usso_access_token"
 
     @model_validator(mode="before")
-    def validate_header(cls, data: dict):
+    def validate_header(cls, data: dict) -> dict:
         if data.get("type") == "Authorization" and not data.get("name"):
             data["name"] = "Bearer"
         elif data.get("type") == "Cookie":
@@ -22,10 +22,10 @@ class HeaderConfig(BaseModel):
             data["name"] = data.get("name", "x-usso-access-token")
         return data
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.model_dump_json())
 
-    def get_key(self, request) -> str | None:
+    def get_key(self, request: object) -> str | None:  # type: ignore
         headers: dict[str, Any] = getattr(request, "headers", {})
         cookies: dict[str, str] = getattr(
             request, "cookies", headers.get("Cookie", {})
@@ -54,18 +54,18 @@ class AuthConfig(usso_jwt.config.JWTConfig):
     jwt_header: HeaderConfig | None = HeaderConfig()
     static_api_keys: list[str] | None = None
 
-    def get_api_key(self, request) -> str | None:
+    def get_api_key(self, request: object) -> str | None:
         if self.api_key_header:
             return self.api_key_header.get_key(request)
         return None
 
-    def get_jwt(self, request) -> str | None:
+    def get_jwt(self, request: object) -> str | None:
         if self.jwt_header:
             return self.jwt_header.get_key(request)
         return None
 
     def verify_token(
-        self, token: str, *, raise_exception: bool = True, **kwargs
+        self, token: str, *, raise_exception: bool = True, **kwargs: dict
     ) -> bool:
         from usso_jwt import exceptions as jwt_exceptions
         from usso_jwt import schemas

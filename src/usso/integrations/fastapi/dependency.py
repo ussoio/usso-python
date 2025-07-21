@@ -16,7 +16,7 @@ class USSOAuthentication(UssoAuth):
         jwt_config: AvailableJwtConfigs | None = None,
         raise_exception: bool = True,
         expected_token_type: str = "access",
-    ):
+    ) -> None:
         if jwt_config is None:
             jwt_config = AuthConfig()
 

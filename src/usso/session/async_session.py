@@ -17,8 +17,9 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         usso_api_key: str | None = os.getenv("USSO_ADMIN_API_KEY"),
         user_id: str | None = None,
         client: "AsyncUssoSession" = None,
-    ):
-        httpx.AsyncClient.__init__(self)
+        **kwargs: dict,
+    ) -> None:
+        httpx.AsyncClient.__init__(self, **kwargs)
         BaseUssoSession.__init__(
             self,
             usso_base_url=usso_base_url,
@@ -100,7 +101,7 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         )
         return self._handle_refresh_response(response)
 
-    async def get_session(self):
+    async def get_session(self) -> "AsyncUssoSession":
         if hasattr(self, "api_key") and self.api_key:
             return self
 
@@ -108,6 +109,8 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
             await self._refresh()
         return self
 
-    async def _request(self, method: str, url: str, **kwargs):
+    async def _request(
+        self, method: str, url: str, **kwargs: dict
+    ) -> httpx.Response:
         session = await self.get_session()
         return await session.request(method, url, **kwargs)

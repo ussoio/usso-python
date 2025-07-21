@@ -17,7 +17,7 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
     def jwt_config(self) -> AuthConfig:
         return settings.USSO_JWT_CONFIG
 
-    def process_request(self, request: HttpRequest):
+    def process_request(self, request: HttpRequest) -> None:
         """
         Middleware to authenticate users by JWT token and create or
         return a user in the database.

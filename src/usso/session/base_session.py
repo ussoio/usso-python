@@ -14,7 +14,7 @@ class BaseUssoSession:
         app_secret: str | None = None,
         usso_url: str = "https://sso.usso.io",
         client: Optional["BaseUssoSession"] = None,
-    ):
+    ) -> None:
         if client:
             self.copy_attributes_from(client)
             return
@@ -54,7 +54,7 @@ class BaseUssoSession:
         self.access_token = None
         self.headers = getattr(self, "headers", {})
 
-    def copy_attributes_from(self, client: "BaseUssoSession"):
+    def copy_attributes_from(self, client: "BaseUssoSession") -> None:
         self.usso_url = client.usso_url
         self.usso_refresh_url = client.usso_refresh_url
         self._refresh_token = client._refresh_token
@@ -64,7 +64,7 @@ class BaseUssoSession:
         self.headers = client.headers.copy()
 
     @property
-    def refresh_token(self):
+    def refresh_token(self) -> JWT:
         if (
             self._refresh_token
             and self._refresh_token.verify(  # noqa: W503

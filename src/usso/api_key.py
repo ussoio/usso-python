@@ -10,7 +10,7 @@ from .user import UserData
 logger = logging.getLogger("usso")
 
 
-def _handle_exception(error_type: str, **kwargs):
+def _handle_exception(error_type: str, **kwargs: dict) -> None:
     """Handle API key related exceptions."""
     if kwargs.get("raise_exception", True):
         raise USSOException(
@@ -20,7 +20,7 @@ def _handle_exception(error_type: str, **kwargs):
 
 
 @cachetools.func.ttl_cache(maxsize=128, ttl=60)
-def fetch_api_key_data(api_key_verify_url: str, api_key: str):
+def fetch_api_key_data(api_key_verify_url: str, api_key: str) -> UserData:
     """Fetch user data using an API key.
 
     Args:
