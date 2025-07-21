@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Any, Literal, Union
 
 import usso_jwt.config
@@ -6,6 +7,8 @@ from pydantic import BaseModel, model_validator
 
 from .user import UserData
 from .utils.string_utils import get_authorization_scheme_param
+
+BASE_USSO_URL = os.getenv("BASE_USSO_URL") or "https://sso.usso.io"
 
 
 class HeaderConfig(BaseModel):
@@ -42,7 +45,7 @@ class HeaderConfig(BaseModel):
 
 
 class APIHeaderConfig(HeaderConfig):
-    verify_endpoint: str = "https://sso.usso.io/api/sso/v1/apikeys/verify"
+    verify_endpoint: str = f"{BASE_USSO_URL}/api/sso/v1/apikeys/verify"
 
 
 class AuthConfig(usso_jwt.config.JWTConfig):

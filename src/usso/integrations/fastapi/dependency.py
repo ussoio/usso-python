@@ -14,15 +14,20 @@ class USSOAuthentication(UssoAuth):
     def __init__(
         self,
         jwt_config: AvailableJwtConfigs | None = None,
+        *,
         raise_exception: bool = True,
         expected_token_type: str = "access",
+        from_base_usso_url: str | None = None,
     ) -> None:
         if jwt_config is None:
             jwt_config = AuthConfig()
 
-        super().__init__(jwt_config=jwt_config)
+        super().__init__(
+            jwt_config=jwt_config, from_base_usso_url=from_base_usso_url
+        )
         self.raise_exception = raise_exception
         self.expected_token_type = expected_token_type
+        self.from_base_usso_url = from_base_usso_url
 
     def __call__(self, request: Request) -> UserData:
         return self.usso_access_security(request)
@@ -41,7 +46,6 @@ class USSOAuthentication(UssoAuth):
                 return token
         return None
 
-    # @instance_method
     def usso_access_security(self, request: Request) -> UserData | None:
         """Return the user associated with a token value."""
         api_key = self.get_request_api_key(request)
@@ -62,7 +66,6 @@ class USSOAuthentication(UssoAuth):
             raise_exception=self.raise_exception,
         )
 
-    # @instance_method
     def jwt_access_security_ws(self, websocket: WebSocket) -> UserData | None:
         """Return the user associated with a token value."""
         api_key = self.get_request_api_key(websocket)

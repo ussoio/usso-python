@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import urlparse
 
 import usso_jwt.exceptions
 import usso_jwt.schemas
@@ -22,6 +23,8 @@ class UssoAuth:
         self,
         *,
         jwt_config: AvailableJwtConfigs | None = None,
+        from_base_usso_url: str | None = None,
+        **kwargs: object,
     ) -> None:
         """Initialize the USSO authentication client.
 
@@ -31,6 +34,7 @@ class UssoAuth:
         if jwt_config is None:
             jwt_config = AuthConfig()
         self.jwt_configs = AuthConfig.validate_jwt_configs(jwt_config)
+        self.from_base_usso_url = from_base_usso_url
 
     def user_data_from_token(
         self,
@@ -59,6 +63,25 @@ class UssoAuth:
             try:
                 jwt_obj = usso_jwt.schemas.JWT(
                     token=token, config=jwk_config, payload_class=UserData
+                )
+                if jwt_obj.verify(
+                    expected_token_type=expected_token_type,
+                    **kwargs,
+                ):
+                    return jwt_obj.payload
+            except usso_jwt.exceptions.JWTError as e:
+                exp = e
+
+        if self.from_base_usso_url:
+            try:
+                jwt_obj = usso_jwt.schemas.JWT(
+                    token=token, config=jwk_config, payload_class=UserData
+                )
+                iss = jwt_obj.unverified_payload.iss
+                iss_domain = urlparse(iss).netloc
+                jwt_obj.config.jwks_url = (
+                    f"{self.from_base_usso_url}/.well-known/jwks.json?"
+                    f"domain={iss_domain}"
                 )
                 if jwt_obj.verify(
                     expected_token_type=expected_token_type,
