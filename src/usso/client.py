@@ -73,7 +73,7 @@ class UssoAuth:
                     f"{self.from_base_usso_url}/.well-known/jwks.json?"
                     f"domain={iss_domain}"
                 )
-                logging.info(f"{iss_domain=} {jwks_url=}")
+                logging.error(f"{iss_domain=} {jwks_url=}")
                 jwt_obj.config.jwks_url = jwks_url
                 if jwt_obj.verify(
                     expected_token_type=expected_token_type,
@@ -82,6 +82,8 @@ class UssoAuth:
                     return jwt_obj.payload
             except usso_jwt.exceptions.JWTError as e:
                 exp = e
+        else:
+            logging.error("No from_base_usso_url")
 
         for jwk_config in self.jwt_configs:
             try:
