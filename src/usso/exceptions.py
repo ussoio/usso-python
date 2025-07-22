@@ -47,7 +47,7 @@ class PermissionDenied(USSOException):
         **kwargs: dict,
     ) -> None:
         super().__init__(
-            403, error=error, message=message, detail=detail, **kwargs
+            403, error=error, detail=detail, message=message, **kwargs
         )
 
 

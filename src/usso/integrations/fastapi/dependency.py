@@ -1,10 +1,11 @@
 import logging
+from collections.abc import Callable
 
 from fastapi import Request, WebSocket
 
 from ...client import UssoAuth
 from ...config import AuthConfig, AvailableJwtConfigs
-from ...exceptions import _handle_exception
+from ...exceptions import PermissionDenied, _handle_exception
 from ...user import UserData
 
 logger = logging.getLogger("usso")
@@ -84,3 +85,32 @@ class USSOAuthentication(UssoAuth):
             message="No token provided",
             raise_exception=self.raise_exception,
         )
+
+    def authorize(
+        self,
+        *,
+        action: str = "read",
+        resource_path: str,
+        filter_data: dict | None = None,
+    ) -> Callable[[Request], UserData]:
+        def _authorize(request: Request) -> UserData:
+            from ... import authorization
+
+            user = self.usso_access_security(request)
+            user_scopes = user.scopes or []
+            if not authorization.check_access(
+                user_scopes=user_scopes,
+                resource_path=resource_path,
+                action=action,
+                filters=filter_data,
+            ):
+                raise PermissionDenied(
+                    detail=(
+                        f"User {user.uid} is not authorized "
+                        f"to {action} {resource_path}"
+                    )
+                )
+
+            return user
+
+        return _authorize
