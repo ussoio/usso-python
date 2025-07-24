@@ -1,4 +1,6 @@
+import json
 import logging
+import os
 from urllib.parse import urlparse
 
 import usso_jwt.exceptions
@@ -32,7 +34,10 @@ class UssoAuth:
             jwt_config: JWT configuration(s) to use for token validation
         """
         if jwt_config is None:
-            jwt_config = AuthConfig()
+            if os.getenv("JWT_CONFIGS"):
+                jwt_config = json.loads(os.getenv("JWT_CONFIGS"))
+            else:
+                jwt_config = AuthConfig()
         self.jwt_configs = AuthConfig.validate_jwt_configs(jwt_config)
         self.from_base_usso_url = from_base_usso_url
 

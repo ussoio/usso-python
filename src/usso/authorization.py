@@ -7,8 +7,10 @@ PRIVILEGE_LEVELS = {
     "update": 30,
     "delete": 40,
     "manage": 50,
+    "admin": 60,
     "owner": 90,
     "*": 90,
+    "superadmin": 100,
 }
 
 
@@ -179,11 +181,25 @@ def broadest_scope_filter(filters: list[dict]) -> dict:
     return min(filters, key=restriction_score)
 
 
+def owner_authorization(
+    requested_filter: dict[str, str] | None = None,
+    user_id: str | None = None,
+    self_action: str = "owner",
+    action: str = "read",
+) -> bool:
+    user_level = PRIVILEGE_LEVELS.get(self_action or "read", 10)
+    req_level = PRIVILEGE_LEVELS.get(action or "read", 10)
+
+    if user_id and requested_filter.get("user_id") == user_id:
+        return user_level >= req_level
+    return False
+
+
 def is_authorized(
     user_scope: str,
     requested_path: str,
-    requested_action: str | None = None,
-    reuested_filter: dict[str, str] | None = None,
+    requested_action: str = "read",
+    requested_filter: dict[str, str] | None = None,
     *,
     strict: bool = False,
 ) -> bool:
@@ -192,12 +208,12 @@ def is_authorized(
     if not is_path_match(user_path, requested_path, strict=strict):
         return False
 
-    if not is_filter_match(user_filters, reuested_filter or {}):
+    if not is_filter_match(user_filters, requested_filter or {}):
         return False
 
     if requested_action:
         user_level = PRIVILEGE_LEVELS.get(user_action or "read", 10)
-        req_level = PRIVILEGE_LEVELS.get(requested_action, 0)
+        req_level = PRIVILEGE_LEVELS.get(requested_action, 10)
         return user_level >= req_level
 
     return True
@@ -234,7 +250,7 @@ def check_access(
                 user_scope=scope,
                 requested_path=resource_path,
                 requested_action=action,
-                reuested_filter=filt,
+                requested_filter=filt,
                 strict=strict,
             ):
                 return True

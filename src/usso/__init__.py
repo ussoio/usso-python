@@ -5,8 +5,8 @@ with Python frameworks, enabling secure and seamless authentication
 across microservices.
 """
 
-from .client import AuthConfig, UssoAuth
-from .config import APIHeaderConfig, HeaderConfig
+from .client import UssoAuth
+from .config import APIHeaderConfig, AuthConfig, HeaderConfig
 from .exceptions import USSOException
 from .user import UserData
 

@@ -3,9 +3,70 @@ import pytest
 from src.usso.authorization import (
     check_access,
     has_subset_scope,
+    is_authorized,
     is_path_match,
     is_subset_scope,
+    owner_authorization,
 )
+
+
+@pytest.mark.parametrize(
+    "requested_filter, user_id, self_action, action, expected",
+    [
+        ({"user_id": "123"}, "123", "owner", "read", True),
+        ({}, "123", "owner", "create", False),
+        ({"user_id": "123"}, "123", "read", "create", False),
+    ],
+)
+def test_owner_authorization(
+    requested_filter: dict[str, str],
+    user_id: str,
+    self_action: str,
+    action: str,
+    expected: bool,
+) -> None:
+    assert (
+        owner_authorization(requested_filter, user_id, self_action, action)
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "user_scope,requested_path,requested_action,requested_filter,strict,expected",
+    [
+        (
+            "read:media/files",
+            "media/files",
+            "read",
+            {"user_id": "123"},
+            False,
+            True,
+        ),
+        ("read:media/files", "media/files", "read", None, False, True),
+        ("media/files", "media/files", "read", None, False, True),
+        ("media/files", "files", "create", None, False, False),
+        ("media/*", "files", "read", None, False, False),
+        ("read:media/files", "media/files", "create", None, False, False),
+    ],
+)
+def test_is_authorized(
+    user_scope: str,
+    requested_path: str,
+    requested_action: str,
+    requested_filter: dict[str, str] | None,
+    strict: bool,
+    expected: bool,
+) -> None:
+    assert (
+        is_authorized(
+            user_scope,
+            requested_path,
+            requested_action,
+            requested_filter,
+            strict=strict,
+        )
+        == expected
+    )
 
 
 @pytest.mark.parametrize(
