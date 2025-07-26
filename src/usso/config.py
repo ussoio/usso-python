@@ -3,7 +3,7 @@ import os
 from typing import Any, Literal, Union
 
 import usso_jwt.config
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from .user import UserData
 from .utils.string_utils import get_authorization_scheme_param
@@ -14,7 +14,7 @@ class HeaderConfig(BaseModel):
     name: str = "usso_access_token"
 
     @model_validator(mode="before")
-    def validate_header(self, data: dict) -> dict:
+    def validate_header(cls, data: dict) -> dict:  # noqa: N805
         if data.get("type") == "Authorization" and not data.get("name"):
             data["name"] = "Bearer"
         elif data.get("type") == "Cookie":
@@ -43,9 +43,9 @@ class HeaderConfig(BaseModel):
 
 
 class APIHeaderConfig(HeaderConfig):
-    BASE_USSO_URL = os.getenv("BASE_USSO_URL") or "https://sso.usso.io"
-
-    verify_endpoint: str = f"{BASE_USSO_URL}/api/sso/v1/apikeys/verify"
+    verify_endpoint: str = Field(
+        default_factory=lambda: f"{os.getenv('BASE_USSO_URL') or 'https://sso.usso.io'}/api/sso/v1/apikeys/verify"
+    )
 
 
 class AuthConfig(usso_jwt.config.JWTConfig):
