@@ -29,7 +29,8 @@ class UssoSession(httpx.Client, BaseUssoSession):
             self._refresh()
 
     def _refresh(self) -> dict:
-        assert self.refresh_token, "refresh_token is required"
+        if not self.refresh_token:
+            raise ValueError("refresh_token is required")
 
         response = httpx.post(
             self.usso_refresh_url,

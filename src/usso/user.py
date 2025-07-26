@@ -8,9 +8,9 @@ from pydantic import BaseModel
 class TokenType(StrEnum):
     ACCESS = "access"
     REFRESH = "refresh"
-    SECURE_TOKEN = "secure"
-    ONE_TIME_TOKEN = "one_time"
-    TEMPORARY_TOKEN = "temporary"
+    SECURE_TOKEN = "secure"  # noqa: S105
+    ONE_TIME_TOKEN = "one_time"  # noqa: S105
+    TEMPORARY_TOKEN = "temporary"  # noqa: S105
 
 
 class UserData(BaseModel):

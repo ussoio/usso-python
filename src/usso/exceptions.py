@@ -12,7 +12,9 @@ error_messages = {
 }
 
 
-class USSOException(Exception):
+class USSOException(Exception):  # noqa: N818
+    """USSOException is a base exception for all USSO exceptions."""
+
     def __init__(
         self,
         status_code: int,

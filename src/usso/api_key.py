@@ -32,6 +32,7 @@ def fetch_api_key_data(api_key_verify_url: str, api_key: str) -> UserData:
 
     Raises:
         USSOException: If the API key is invalid or verification fails
+
     """
     try:
         response = httpx.post(

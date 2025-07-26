@@ -46,9 +46,7 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         return headers, params
 
     def _handle_refresh_response(self, response: httpx.Response) -> dict:
-        """
-        Helper function to process the response from refresh requests.
-        """
+        """Helper function to process the response from refresh requests."""
         response.raise_for_status()
         data: dict[str, str | dict[str, str]] = response.json()
         self.access_token = JWT(
@@ -66,9 +64,8 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         return data
 
     def _refresh_sync(self) -> dict:
-        assert self.refresh_token or self.usso_admin_api_key, (
-            "refresh_token or usso_api_key is required"
-        )
+        if not self.refresh_token or not self.usso_admin_api_key:
+            raise ValueError("refresh_token or usso_api_key is required")
 
         headers, params = self._prepare_refresh_request()
 
@@ -84,9 +81,8 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
         return self._handle_refresh_response(response)
 
     async def _refresh(self) -> dict:
-        assert self.refresh_token or self.usso_admin_api_key, (
-            "refresh_token or usso_api_key is required"
-        )
+        if not self.refresh_token or not self.usso_admin_api_key:
+            raise ValueError("refresh_token or usso_api_key is required")
 
         headers, params = self._prepare_refresh_request()
 

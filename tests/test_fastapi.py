@@ -46,7 +46,6 @@ def app(test_key: AbstractKey) -> FastAPI:
     ) -> None:
         await websocket.accept()
         await websocket.send_json({"msg": user.model_dump()})
-        # await websocket.send_json({"msg": "Hello WebSocket"})
         await websocket.close()
 
     return app
@@ -55,7 +54,6 @@ def app(test_key: AbstractKey) -> FastAPI:
 @pytest_asyncio.fixture(scope="session")
 async def client(app: FastAPI) -> AsyncGenerator[httpx.AsyncClient]:
     """Fixture to provide an AsyncClient for FastAPI app."""
-
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test.uln.me",

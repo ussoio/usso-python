@@ -8,15 +8,13 @@ from pydantic import BaseModel, model_validator
 from .user import UserData
 from .utils.string_utils import get_authorization_scheme_param
 
-BASE_USSO_URL = os.getenv("BASE_USSO_URL") or "https://sso.usso.io"
-
 
 class HeaderConfig(BaseModel):
     type: Literal["Authorization", "Cookie", "CustomHeader"] = "Cookie"
     name: str = "usso_access_token"
 
     @model_validator(mode="before")
-    def validate_header(cls, data: dict) -> dict:
+    def validate_header(self, data: dict) -> dict:
         if data.get("type") == "Authorization" and not data.get("name"):
             data["name"] = "Bearer"
         elif data.get("type") == "Cookie":
@@ -45,6 +43,8 @@ class HeaderConfig(BaseModel):
 
 
 class APIHeaderConfig(HeaderConfig):
+    BASE_USSO_URL = os.getenv("BASE_USSO_URL") or "https://sso.usso.io"
+
     verify_endpoint: str = f"{BASE_USSO_URL}/api/sso/v1/apikeys/verify"
 
 
@@ -79,9 +79,9 @@ class AuthConfig(usso_jwt.config.JWTConfig):
                 config=self,
                 payload_class=UserData,
             ).verify(**kwargs)
-        except jwt_exceptions.JWTError as e:
+        except jwt_exceptions.JWTError:
             if raise_exception:
-                raise e
+                raise
             return False
 
     @classmethod

@@ -15,8 +15,7 @@ PRIVILEGE_LEVELS = {
 
 
 def parse_scope(scope: str) -> tuple[str, list[str], dict[str, str]]:
-    """
-    Parse a scope string into (action, path_parts, filters).
+    """Parse a scope string into (action, path_parts, filters).
 
     Examples:
         "read:media/files/transaction?user_id=123" ->
@@ -35,8 +34,8 @@ def parse_scope(scope: str) -> tuple[str, list[str], dict[str, str]]:
         - action: str (could be empty string if no scheme present)
         - path_parts: list[str]
         - filters: dict[str, str]
-    """
 
+    """
     colon_idx = scope.find(":")
     question_idx = scope.find("?")
     if question_idx == -1:
@@ -61,7 +60,7 @@ def _normalize_path(path: list[str] | str) -> list[str]:
     elif isinstance(path, list):
         return path
     else:
-        raise ValueError(f"Invalid path type: {type(path)}")
+        raise TypeError(f"Invalid path type: {type(path)}")
 
 
 def _match_path_parts(
@@ -96,9 +95,7 @@ def is_path_match(
     requested_path: list[str] | str,
     strict: bool = False,
 ) -> bool:
-    """
-    Match resource paths from right to left, supporting wildcards (*).
-    """
+    """Match resource paths from right to left, supporting wildcards (*)."""
     user_parts = _normalize_path(user_path)
     req_parts = _normalize_path(requested_path)
     return _match_path_parts(user_parts, req_parts, strict)
@@ -119,8 +116,7 @@ def get_scope_filters(
     resource: str,
     user_scopes: list[str],
 ) -> list[dict]:
-    """
-    Return filters extracted from user scopes that:
+    """Return filters extracted from user scopes that:
 
     - Have equal or higher privilege level than the requested action.
     - Match the requested resource path.
@@ -145,8 +141,7 @@ def get_scope_filters(
 
 
 def broadest_scope_filter(filters: list[dict]) -> dict:
-    """
-    Return the broadest scope filter. It is used to select the most
+    """Return the broadest scope filter. It is used to select the most
     restrictive filter from the list of filters. by assigning a score
     to each filter based on the restriction bits. the filter with the
     lowest score is the most restrictive.
@@ -161,14 +156,14 @@ def broadest_scope_filter(filters: list[dict]) -> dict:
         {},                                            # score = 0
     ]
     """
-    RESTRICTION_BITS = {
+    restriction_bits = {
         "tenant_id": 1 << 0,  # 1
         "workspace_id": 1 << 1,  # 2
         "user_id": 1 << 2,  # 4
         "uid": 1 << 3,  # 8
     }
 
-    DEFAULT_BIT = 1 << 4
+    default_bit = 1 << 4
 
     if not filters:
         return {}
@@ -176,7 +171,7 @@ def broadest_scope_filter(filters: list[dict]) -> dict:
     def restriction_score(f: dict) -> int:
         if not f:
             return 0
-        return sum(RESTRICTION_BITS.get(k, DEFAULT_BIT) for k in f)
+        return sum(restriction_bits.get(k, default_bit) for k in f)
 
     return min(filters, key=restriction_score)
 
@@ -227,8 +222,7 @@ def check_access(
     filters: list[dict[str, str]] | dict[str, str] | None = None,
     strict: bool = False,
 ) -> bool:
-    """
-    Check if the user has the required access to a resource.
+    """Check if the user has the required access to a resource.
 
     Args:
         user_scopes: list of user scope strings
@@ -238,6 +232,7 @@ def check_access(
 
     Returns:
         True if access is granted, False otherwise
+
     """
     if isinstance(filters, dict):
         filters = [{k: v} for k, v in filters.items()]
@@ -275,11 +270,7 @@ def is_subset_scope(*, subset_scope: str, super_scope: str) -> bool:
         return False
 
     # 3. Compare filters: parent_filters ⊆ child_filters
-    for k, v in parent_filters.items():
-        if child_filters.get(k) != v:
-            return False
-
-    return True
+    return all(child_filters.get(k) == v for k, v in parent_filters.items())
 
 
 def has_subset_scope(

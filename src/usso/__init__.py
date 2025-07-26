@@ -1,4 +1,4 @@
-"""USSO - Universal Single Sign-On Client
+"""USSO - Universal Single Sign-On Client.
 
 A plug-and-play client for integrating universal single sign-on (SSO)
 with Python frameworks, enabling secure and seamless authentication
@@ -13,14 +13,14 @@ from .user import UserData
 __version__ = "0.28.0"
 
 __all__ = [
-    # Main client
-    "UssoAuth",
+    "APIHeaderConfig",
     # Configuration
     "AuthConfig",
     "HeaderConfig",
-    "APIHeaderConfig",
-    # Models
-    "UserData",
     # Exceptions
     "USSOException",
+    # Models
+    "UserData",
+    # Main client
+    "UssoAuth",
 ]

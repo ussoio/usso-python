@@ -6,14 +6,23 @@ import httpx
 from usso_jwt import sign
 from usso_jwt.enums import Algorithm
 
-AGENT_ID = os.getenv("AGENT_ID")
-PRIVATE_KEY = os.getenv("AGENT_PRIVATE_KEY")
-BASE_USSO_URL = os.getenv("BASE_USSO_URL") or "https://usso.uln.me"
 
+def generate_agent_jwt(
+    scopes: list[str],
+    aud: str,
+    tenant_id: str,
+    *,
+    agent_id: str | None = None,
+    private_key: str | None = None,
+) -> str:
+    agent_id = agent_id or os.getenv("AGENT_ID")
+    private_key = private_key or os.getenv("AGENT_PRIVATE_KEY")
 
-def generate_agent_jwt(scopes: list[str], aud: str, tenant_id: str) -> str:
+    if not agent_id or not private_key:
+        raise ValueError("agent_id and private_key are required")
+
     payload = {
-        "iss": AGENT_ID,
+        "iss": agent_id,
         "scopes": scopes,
         "aud": aud,
         "exp": int(time.time()) + 300,
@@ -26,7 +35,7 @@ def generate_agent_jwt(scopes: list[str], aud: str, tenant_id: str) -> str:
     jwt = sign.generate_jwt(
         header={"alg": Algorithm.Ed25519.value, "typ": "JWT"},
         payload=payload,
-        key=PRIVATE_KEY,
+        key=private_key,
         alg=Algorithm.Ed25519,
     )
 
@@ -34,7 +43,9 @@ def generate_agent_jwt(scopes: list[str], aud: str, tenant_id: str) -> str:
 
 
 def get_agent_token(jwt: str) -> str:
-    with httpx.Client(base_url=f"{BASE_USSO_URL}/api/sso/v1") as client:
+    base_usso_url = os.getenv("BASE_USSO_URL") or "https://usso.uln.me"
+
+    with httpx.Client(base_url=f"{base_usso_url}/api/sso/v1") as client:
         response = client.post(
             "/agents/auth",
             headers={"Authorization": f"Bearer {jwt}"},
@@ -44,8 +55,10 @@ def get_agent_token(jwt: str) -> str:
 
 
 async def get_agent_token_async(jwt: str) -> str:
+    base_usso_url = os.getenv("BASE_USSO_URL") or "https://usso.uln.me"
+
     async with httpx.AsyncClient(
-        base_url=f"{BASE_USSO_URL}/api/sso/v1"
+        base_url=f"{base_usso_url}/api/sso/v1"
     ) as client:
         response = await client.post(
             "/agents/auth",

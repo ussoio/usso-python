@@ -20,8 +20,6 @@ def setup_debugpy() -> None:
 @pytest.fixture(scope="session")
 def test_key() -> AbstractKey:
     return EdDSAKey.generate()
-    # return RSAKey.generate(algorithm="PS256", key_size=2048)
-    # return ECDSAKey.generate(algorithm="ES256")
 
 
 @pytest.fixture

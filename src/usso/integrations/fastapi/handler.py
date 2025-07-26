@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from ...exceptions import USSOException
 
 
-async def usso_exception_handler(
+def usso_exception_handler(
     request: Request, exc: USSOException
 ) -> JSONResponse:
     return JSONResponse(

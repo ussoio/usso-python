@@ -17,7 +17,7 @@ class USSOAuthentication(UssoAuth):
         jwt_config: AvailableJwtConfigs | None = None,
         *,
         raise_exception: bool = True,
-        expected_token_type: str = "access",
+        expected_token_type: str = "access",  # noqa: S107
         from_base_usso_url: str | None = None,
     ) -> None:
         if jwt_config is None:

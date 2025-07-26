@@ -18,8 +18,7 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         return settings.USSO_JWT_CONFIG
 
     def process_request(self, request: HttpRequest) -> None:
-        """
-        Middleware to authenticate users by JWT token and create or
+        """Middleware to authenticate users by JWT token and create or
         return a user in the database.
         """
         try:
@@ -66,8 +65,7 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         return usso_auth.user_data_from_token(token, raise_exception=False)
 
     def get_or_create_user(self, user_data: UserData) -> User:
-        """
-        Check if a user exists by phone. If not, create a new user
+        """Check if a user exists by phone. If not, create a new user
         and return it.
         """
         if self.jwt_config.jwks_url:
@@ -89,10 +87,10 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
             )
 
             if created:
-                logger.info(f"New user created with phone: {phone}")
-
-            return user
+                logger.info("New user created with phone: %s", phone)
 
         except IntegrityError as e:
-            logger.error(f"Integrity error while creating user: {str(e)}")
-            raise ValueError(f"Error while creating user: {str(e)}") from e
+            logger.exception("Integrity error while creating user")
+            raise ValueError(f"Error while creating user: {e!s}") from e
+
+        return user

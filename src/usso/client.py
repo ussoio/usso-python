@@ -32,6 +32,7 @@ class UssoAuth:
 
         Args:
             jwt_config: JWT configuration(s) to use for token validation
+
         """
         if jwt_config is None:
             if os.getenv("JWT_CONFIGS"):
@@ -45,7 +46,7 @@ class UssoAuth:
         self,
         token: str,
         *,
-        expected_token_type: str | None = "access",
+        expected_token_type: str | None = "access",  # noqa: S107
         raise_exception: bool = True,
         **kwargs: dict,
     ) -> UserData | None:
@@ -62,6 +63,7 @@ class UssoAuth:
 
         Raises:
             USSOException: If token is invalid and raise_exception is True
+
         """
         exp = None
 
@@ -118,6 +120,7 @@ class UssoAuth:
 
         Raises:
             USSOException: If the API key is invalid
+
         """
         return fetch_api_key_data(
             self.jwt_configs[0].api_key_header.verify_endpoint,
