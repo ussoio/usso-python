@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso"
-version = "0.28.35"
+version = "0.28.36"
 description = "A plug-and-play client for integrating universal single sign-on (SSO) with Python frameworks, enabling secure and seamless authentication across microservices."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -93,8 +93,8 @@ select = [
   "ISC",   # implicit string concatenation
   "G",     # misuse of logging string interpolation
   # "D",     # docstrings: docstring checking
-  "ERA",   # remove commented code
-  "RUF",   # ruff-specific improvements
+  "ERA", # remove commented code
+  "RUF", # ruff-specific improvements
 ]
 per-file-ignores = { "tests/*" = ["G004", "S101"], "server/db.py" = ["TRY"] }
 ignore = ["TRY003", "COM812"]

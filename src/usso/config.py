@@ -1,48 +1,49 @@
 import json
 import os
-from typing import Any, Literal, Union
+from typing import Any, Union
 
 import usso_jwt.config
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 
 from .user import UserData
 from .utils.string_utils import get_authorization_scheme_param
 
 
 class HeaderConfig(BaseModel):
-    type: Literal["Authorization", "Cookie", "CustomHeader"] = "Cookie"
-    name: str = "usso_access_token"
-
-    @model_validator(mode="before")
-    def validate_header(cls, data: dict) -> dict:  # noqa: N805
-        if data.get("type") == "Authorization" and not data.get("name"):
-            data["name"] = "Bearer"
-        elif data.get("type") == "Cookie":
-            data["name"] = data.get("name", "usso_access_token")
-        elif data.get("type") == "CustomHeader":
-            data["name"] = data.get("name", "x-usso-access-token")
-        return data
+    header_name: str | None = "Authorization"
+    cookie_name: str | None = "usso_access_token"
 
     def __hash__(self) -> int:
         return hash(self.model_dump_json())
 
-    def get_key(self, request: object) -> str | None:  # type: ignore
+    def _get_key_header(self, request: object) -> str | None:
+        if not self.header_name:
+            return None
+
         headers: dict[str, Any] = getattr(request, "headers", {})
-        cookies: dict[str, str] = getattr(
-            request, "cookies", headers.get("Cookie", {})
-        )
-        if self.type == "CustomHeader":
-            return headers.get(self.name)
-        elif self.type == "Cookie":
-            return cookies.get(self.name)
-        else:  # self.type == "Authorization":
-            authorization = headers.get("Authorization")
-            scheme, credentials = get_authorization_scheme_param(authorization)
-            if scheme.lower() == self.name.lower():
+        header_auth = headers.get(self.header_name)
+        if self.header_name == "Authorization":
+            scheme, credentials = get_authorization_scheme_param(header_auth)
+            if scheme.lower() == "bearer":
                 return credentials
+
+        return header_auth
+
+    def _get_key_cookie(self, request: object) -> str | None:
+        if not self.cookie_name:
+            return None
+
+        getattr(request, "headers", {})
+        cookies: dict[str, str] = getattr(request, "cookies", {})
+        return cookies.get(self.cookie_name)
+
+    def get_key(self, request: object) -> str | None:  # type: ignore
+        return self._get_key_header(request) or self._get_key_cookie(request)
 
 
 class APIHeaderConfig(HeaderConfig):
+    header_name: str | None = "x-api-key"
+    cookie_name: str | None = None
     verify_endpoint: str = Field(
         default_factory=lambda: f"{os.getenv('BASE_USSO_URL') or 'https://sso.usso.io'}/api/sso/v1/apikeys/verify"
     )
