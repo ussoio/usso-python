@@ -21,6 +21,11 @@ def generate_agent_jwt(
     if not agent_id or not private_key:
         raise ValueError("agent_id and private_key are required")
 
+    if isinstance(private_key, str):
+        private_key_bytes = private_key.encode()
+    else:
+        private_key_bytes = private_key_bytes
+
     payload = {
         "iss": agent_id,
         "scopes": scopes,
@@ -35,7 +40,7 @@ def generate_agent_jwt(
     jwt = sign.generate_jwt(
         header={"alg": Algorithm.Ed25519.value, "typ": "JWT"},
         payload=payload,
-        key=private_key,
+        key=private_key_bytes,
         alg=Algorithm.Ed25519,
     )
 
