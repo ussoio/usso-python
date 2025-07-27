@@ -11,7 +11,7 @@ from .utils.string_utils import get_authorization_scheme_param
 
 class HeaderConfig(BaseModel):
     header_name: str | None = "Authorization"
-    cookie_name: str | None = "usso_access_token"
+    cookie_name: str | None = "usso-access-token"
 
     def __hash__(self) -> int:
         return hash(self.model_dump_json())
