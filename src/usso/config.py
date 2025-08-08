@@ -58,6 +58,16 @@ class AuthConfig(usso_jwt.config.JWTConfig):
     jwt_header: HeaderConfig | None = HeaderConfig()
     static_api_keys: list[str] | None = None
 
+    def __init__(self, **data: dict) -> None:
+        if not data:
+            if os.getenv("JWT_CONFIG"):
+                data = json.loads(os.getenv("JWT_CONFIG"))
+            else:
+                base_url = os.getenv("USSO_BASE_URL", "https://sso.usso.io")
+                data = {"jwks_url": f"{base_url}/.well-known/jwks.json"}
+
+        super().__init__(**data)
+
     def get_api_key(self, request: object) -> str | None:
         if self.api_key_header:
             return self.api_key_header.get_key(request)

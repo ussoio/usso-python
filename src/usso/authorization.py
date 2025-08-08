@@ -185,7 +185,11 @@ def owner_authorization(
     user_level = PRIVILEGE_LEVELS.get(self_action or "read", 10)
     req_level = PRIVILEGE_LEVELS.get(action or "read", 10)
 
-    if user_id and requested_filter.get("user_id") == user_id:
+    if (
+        user_id
+        and requested_filter
+        and requested_filter.get("user_id") == user_id
+    ):
         return user_level >= req_level
     return False
 
