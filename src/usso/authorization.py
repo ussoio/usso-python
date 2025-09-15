@@ -287,3 +287,30 @@ def has_subset_scope(
         if is_subset_scope(subset_scope=subset_scope, super_scope=user_scope):
             return True
     return False
+
+
+def get_common_scopes(
+    *, scopes_a: list[str], scopes_b: list[str]
+) -> list[str]:
+    """Update the scopes for the session."""
+
+    not_permitted_scopes = [
+        scope
+        for scope in scopes_a
+        if not has_subset_scope(subset_scope=scope, super_scope=scopes_b)
+    ]
+    if not not_permitted_scopes:
+        return scopes_a
+
+    new_permitted_scopes = [
+        scope
+        for scope in scopes_b
+        if has_subset_scope(
+            subset_scope=scope, super_scope=not_permitted_scopes
+        )
+    ]
+
+    scopes_a = list(
+        set(scopes_a + new_permitted_scopes) - set(not_permitted_scopes)
+    )
+    return scopes_a
