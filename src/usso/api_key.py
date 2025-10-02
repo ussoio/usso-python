@@ -7,6 +7,11 @@ import httpx
 from .exceptions import USSOException
 from .user import UserData
 
+try:
+    import aiocache
+except ImportError:
+    aiocache = None
+
 logger = logging.getLogger("usso")
 
 
@@ -42,5 +47,33 @@ def fetch_api_key_data(api_key_verify_url: str, api_key: str) -> UserData:
         )
         response.raise_for_status()
         return UserData(**response.json())
+    except Exception as e:
+        _handle_exception("error", message=str(e))
+
+
+async def fetch_api_key_data_async(
+    api_key_verify_url: str, api_key: str
+) -> UserData:
+    """Fetch user data using an API key.
+
+    Args:
+        api_key_verify_url: The API key verify URL to use for verification
+        api_key: The API key to verify
+
+    Returns:
+        UserData: The user data associated with the API key
+
+    Raises:
+        USSOException: If the API key is invalid or verification fails
+
+    """
+    try:
+        async with httpx.AsyncClient(proxy=os.getenv("PROXY")) as client:
+            response = await client.post(
+                api_key_verify_url,
+                json={"api_key": api_key},
+            )
+            response.raise_for_status()
+            return UserData(**response.json())
     except Exception as e:
         _handle_exception("error", message=str(e))

@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 import usso_jwt.exceptions
 import usso_jwt.schemas
 
-from .api_key import fetch_api_key_data
+from .api_key import fetch_api_key_data, fetch_api_key_data_async
 from .config import AuthConfig, AvailableJwtConfigs
 from .exceptions import _handle_exception
 from .user import UserData
@@ -123,6 +123,24 @@ class UssoAuth:
 
         """
         return fetch_api_key_data(
+            self.jwt_configs[0].api_key_header.verify_endpoint,
+            api_key,
+        )
+
+    async def user_data_from_api_key_async(self, api_key: str) -> UserData:
+        """Get user data from an API key.
+
+        Args:
+            api_key: The API key to verify
+
+        Returns:
+            UserData: The user data associated with the API key
+
+        Raises:
+            USSOException: If the API key is invalid
+
+        """
+        return await fetch_api_key_data_async(
             self.jwt_configs[0].api_key_header.verify_endpoint,
             api_key,
         )

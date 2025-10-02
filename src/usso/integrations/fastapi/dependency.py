@@ -67,6 +67,28 @@ class USSOAuthentication(UssoAuth):
             raise_exception=self.raise_exception,
         )
 
+    async def usso_access_security_async(
+        self, request: Request
+    ) -> UserData | None:
+        """Return the user associated with a token value."""
+        api_key = self.get_request_api_key(request)
+        if api_key:
+            return await self.user_data_from_api_key_async(api_key)
+
+        token = self.get_request_jwt(request)
+        if token:
+            return self.user_data_from_token(
+                token,
+                raise_exception=self.raise_exception,
+                expected_token_type=self.expected_token_type,
+            )
+
+        _handle_exception(
+            "Unauthorized",
+            message="No token provided",
+            raise_exception=self.raise_exception,
+        )
+
     def jwt_access_security_ws(self, websocket: WebSocket) -> UserData | None:
         """Return the user associated with a token value."""
         api_key = self.get_request_api_key(websocket)
