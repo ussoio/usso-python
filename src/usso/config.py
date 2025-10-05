@@ -58,7 +58,7 @@ class AuthConfig(usso_jwt.config.JWTConfig):
     jwt_header: HeaderConfig | None = HeaderConfig()
     static_api_keys: list[str] | None = None
 
-    def __init__(self, **data: dict) -> None:
+    def __init__(self, **data: object) -> None:
         if not data:
             if os.getenv("JWT_CONFIG"):
                 data = json.loads(os.getenv("JWT_CONFIG"))
