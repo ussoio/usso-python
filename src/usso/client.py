@@ -37,9 +37,11 @@ class UssoAuth:
         if jwt_config is None:
             if os.getenv("JWT_CONFIGS"):
                 jwt_config = json.loads(os.getenv("JWT_CONFIGS"))
+            elif os.getenv("JWT_CONFIG"):
+                jwt_config = json.loads(os.getenv("JWT_CONFIG"))
             else:
-                jwt_config = AuthConfig()
                 from_usso_base_url = os.getenv("USSO_BASE_URL")
+                jwt_config = AuthConfig()
         self.jwt_configs = AuthConfig.validate_jwt_configs(jwt_config)
         self.from_usso_base_url = from_usso_base_url
 

@@ -4,7 +4,7 @@ from collections.abc import Callable
 from fastapi import Request, WebSocket
 
 from ...client import UssoAuth
-from ...config import AuthConfig, AvailableJwtConfigs
+from ...config import AvailableJwtConfigs
 from ...exceptions import PermissionDenied, _handle_exception
 from ...user import UserData
 
@@ -20,9 +20,6 @@ class USSOAuthentication(UssoAuth):
         expected_token_type: str = "access",  # noqa: S107
         from_usso_base_url: str | None = None,
     ) -> None:
-        if jwt_config is None:
-            jwt_config = AuthConfig()
-
         super().__init__(
             jwt_config=jwt_config, from_usso_base_url=from_usso_base_url
         )
