@@ -39,6 +39,7 @@ class UssoAuth:
                 jwt_config = json.loads(os.getenv("JWT_CONFIGS"))
             else:
                 jwt_config = AuthConfig()
+                from_base_usso_url = os.getenv("BASE_USSO_URL")
         self.jwt_configs = AuthConfig.validate_jwt_configs(jwt_config)
         self.from_base_usso_url = from_base_usso_url
 
