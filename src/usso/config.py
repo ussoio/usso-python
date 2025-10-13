@@ -45,7 +45,7 @@ class APIHeaderConfig(HeaderConfig):
     header_name: str | None = "x-api-key"
     cookie_name: str | None = None
     verify_endpoint: str = Field(
-        default_factory=lambda: f"{os.getenv('BASE_USSO_URL') or 'https://sso.usso.io'}/api/sso/v1/apikeys/verify"
+        default_factory=lambda: f"{os.getenv('USSO_BASE_URL') or 'https://sso.usso.io'}/api/sso/v1/apikeys/verify"
     )
 
 

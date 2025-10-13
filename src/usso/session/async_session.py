@@ -10,7 +10,7 @@ class AsyncUssoSession(httpx.AsyncClient, BaseUssoSession):
     def __init__(
         self,
         *,
-        usso_base_url: str | None = os.getenv("USSO_URL"),
+        usso_base_url: str | None = os.getenv("USSO_BASE_URL"),
         api_key: str | None = os.getenv("USSO_API_KEY"),
         usso_refresh_url: str | None = os.getenv("USSO_REFRESH_URL"),
         refresh_token: str | None = os.getenv("USSO_REFRESH_TOKEN"),

@@ -48,9 +48,9 @@ def generate_agent_jwt(
 
 
 def get_agent_token(jwt: str) -> str:
-    base_usso_url = os.getenv("BASE_USSO_URL") or "https://usso.uln.me"
+    usso_base_url = os.getenv("USSO_BASE_URL") or "https://usso.uln.me"
 
-    with httpx.Client(base_url=f"{base_usso_url}/api/sso/v1") as client:
+    with httpx.Client(base_url=f"{usso_base_url}/api/sso/v1") as client:
         response = client.post(
             "/agents/auth",
             headers={"Authorization": f"Bearer {jwt}"},
@@ -60,10 +60,10 @@ def get_agent_token(jwt: str) -> str:
 
 
 async def get_agent_token_async(jwt: str) -> str:
-    base_usso_url = os.getenv("BASE_USSO_URL") or "https://usso.uln.me"
+    usso_base_url = os.getenv("USSO_BASE_URL") or "https://usso.uln.me"
 
     async with httpx.AsyncClient(
-        base_url=f"{base_usso_url}/api/sso/v1"
+        base_url=f"{usso_base_url}/api/sso/v1"
     ) as client:
         response = await client.post(
             "/agents/auth",

@@ -25,7 +25,7 @@ class UssoAuth:
         self,
         *,
         jwt_config: AvailableJwtConfigs | None = None,
-        from_base_usso_url: str | None = None,
+        from_usso_base_url: str | None = None,
         **kwargs: object,
     ) -> None:
         """Initialize the USSO authentication client.
@@ -39,9 +39,9 @@ class UssoAuth:
                 jwt_config = json.loads(os.getenv("JWT_CONFIGS"))
             else:
                 jwt_config = AuthConfig()
-                from_base_usso_url = os.getenv("BASE_USSO_URL")
+                from_usso_base_url = os.getenv("USSO_BASE_URL")
         self.jwt_configs = AuthConfig.validate_jwt_configs(jwt_config)
-        self.from_base_usso_url = from_base_usso_url
+        self.from_usso_base_url = from_usso_base_url
 
     def user_data_from_token(
         self,
@@ -68,7 +68,7 @@ class UssoAuth:
         """
         exp = None
 
-        if self.from_base_usso_url:
+        if self.from_usso_base_url:
             try:
                 jwt_obj = usso_jwt.schemas.JWT(
                     token=token,
@@ -78,7 +78,7 @@ class UssoAuth:
                 iss = jwt_obj.unverified_payload.iss
                 iss_domain = urlparse(iss).netloc
                 jwks_url = (
-                    f"{self.from_base_usso_url}/.well-known/jwks.json?"
+                    f"{self.from_usso_base_url}/.well-known/jwks.json?"
                     f"domain={iss_domain}"
                 )
                 jwt_obj.config.jwks_url = jwks_url

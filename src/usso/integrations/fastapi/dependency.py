@@ -18,17 +18,16 @@ class USSOAuthentication(UssoAuth):
         *,
         raise_exception: bool = True,
         expected_token_type: str = "access",  # noqa: S107
-        from_base_usso_url: str | None = None,
+        from_usso_base_url: str | None = None,
     ) -> None:
         if jwt_config is None:
             jwt_config = AuthConfig()
 
         super().__init__(
-            jwt_config=jwt_config, from_base_usso_url=from_base_usso_url
+            jwt_config=jwt_config, from_usso_base_url=from_usso_base_url
         )
         self.raise_exception = raise_exception
         self.expected_token_type = expected_token_type
-        self.from_base_usso_url = from_base_usso_url
 
     def __call__(self, request: Request) -> UserData:
         return self.usso_access_security(request)
