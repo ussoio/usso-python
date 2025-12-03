@@ -17,6 +17,7 @@ class AuthIdentifier(StrEnum):
     PASSKEY_ID = "passkey_id"  # Passkey ID (WebAuthn/FIDO2)
     QR_SESSION = "qr_session"  # like WhatsApp Web style QR login
     NATIONAL_ID = "national_id"  # National ID
+    COMPANY_ID = "company_id"  # Company ID
 
     # Application identifiers
     CLIENT_ID = "client_id"  # OIDC client ID
@@ -30,7 +31,7 @@ class AuthIdentifier(StrEnum):
 
         return {
             AuthIdentifier.EMAIL: utils.validators.validate_email,
-            AuthIdentifier.PHONE: utils.validators.validate_iran_phone,
+            AuthIdentifier.PHONE: utils.validators.validate_phone,
             AuthIdentifier.USERNAME: utils.validators.validate_username,
             AuthIdentifier.TELEGRAM_ID: utils.validators.validate_telegram_id,
         }.get(self, lambda s: (True, None, s))
