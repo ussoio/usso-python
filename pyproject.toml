@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso"
-version = "0.29.1"
+version = "0.29.2"
 description = "A plug-and-play client for integrating universal single sign-on (SSO) with Python frameworks, enabling secure and seamless authentication across microservices."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -38,6 +38,7 @@ fastapi = ["fastapi>=0.65.0", "uvicorn[standard]>=0.13.0"]
 django = ["Django>=3.2"]
 dev = ["check-manifest", "pytest", "pytest_asyncio"]
 test = ["coverage"]
+validator = ["email-validator", "phonenumbers"]
 all = [
   "fastapi>=0.65.0",
   "uvicorn[standard]>=0.13.0",
