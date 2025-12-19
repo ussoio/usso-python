@@ -99,3 +99,10 @@ class ChannelType(StrEnum):
     sms = "sms"
     bale = "bale"
     email = "email"
+
+
+class ActivationStatus(StrEnum):
+    ACTIVE = "active"
+    DEACTIVE = "deactive"
+    PENDING = "pending"
+    BANNED = "banned"

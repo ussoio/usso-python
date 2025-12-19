@@ -3,7 +3,7 @@ from collections.abc import Callable
 
 from fastapi import Request, WebSocket
 
-from ...client import UssoAuth
+from ...auth import UssoAuth
 from ...config import AvailableJwtConfigs
 from ...exceptions import PermissionDenied, _handle_exception
 from ...user import UserData

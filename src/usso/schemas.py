@@ -1,8 +1,9 @@
+from datetime import datetime
 from typing import Self
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from .enums import AuthIdentifier, AuthSecret
+from .enums import ActivationStatus, AuthIdentifier, AuthSecret
 
 
 class Identifier(BaseModel):
@@ -73,3 +74,47 @@ class OTPRequest(Identifier):
         if v not in ChannelType.__members__.values():
             raise ValueError(f"Invalid channel type: {v}")
         return v
+
+
+class UserIdentifierSchema(BaseModel):
+    uid: str
+    created_at: datetime
+    updated_at: datetime
+    is_deleted: bool
+    meta_data: dict | None = None
+    tenant_id: str
+
+    type: AuthIdentifier
+    identifier: str
+    verified_at: datetime | None = Field(
+        default=None,
+        description=(
+            "The date and time the identifier was verified, if verified"
+        ),
+    )
+    is_primary: bool = False
+    is_active: bool = True
+
+
+class UserResponse(BaseModel):
+    uid: str
+    created_at: datetime
+    updated_at: datetime
+    is_deleted: bool
+    meta_data: dict | None = None
+    tenant_id: str
+
+    name: str | None = None
+    roles: list[str]
+    scopes: list[str] | None = None
+    workspace_roles: dict[str, list[str]] = Field(default_factory=dict)
+    workspace_ids: list[str] = Field(default_factory=list)
+    is_active: bool = False
+    is_limited: bool = False
+    activation_status: ActivationStatus = ActivationStatus.ACTIVE
+    avatar_url: str | None = None
+    custom_claims: dict = Field(default_factory=dict)
+    history: list[dict[str, object]] = Field(default_factory=list)
+
+    identifiers: list[UserIdentifierSchema] = Field(default_factory=list)
+    credential_methods: list[str] = Field(default_factory=list)
