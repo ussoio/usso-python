@@ -1,3 +1,5 @@
+"""USSO exception classes."""
+
 import logging
 
 logger = logging.getLogger("usso")
@@ -23,6 +25,17 @@ class USSOException(Exception):  # noqa: N818
         message: dict | None = None,
         **kwargs: dict,
     ) -> None:
+        """
+        Initialize USSO exception.
+
+        Args:
+            status_code: HTTP status code.
+            error: Error code string.
+            detail: Detailed error message.
+            message: Localized error messages dictionary.
+            **kwargs: Additional exception data.
+
+        """
         self.status_code = status_code
         self.error = error
         msg: dict = {}
@@ -41,6 +54,20 @@ class USSOException(Exception):  # noqa: N818
 
 
 class PermissionDenied(USSOException):
+    """
+    Exception raised when a user lacks required permissions.
+
+    This exception is raised when authorization checks fail,
+    typically with a 403 status code.
+
+    Args:
+        error: Error code. Defaults to "permission_denied".
+        detail: Detailed error message.
+        message: Localized error messages dictionary.
+        **kwargs: Additional exception data.
+
+    """
+
     def __init__(
         self,
         error: str = "permission_denied",
@@ -48,13 +75,30 @@ class PermissionDenied(USSOException):
         message: dict | None = None,
         **kwargs: dict,
     ) -> None:
+        """
+        Initialize permission denied exception.
+
+        See class docstring for parameter details.
+        """
         super().__init__(
             403, error=error, detail=detail, message=message, **kwargs
         )
 
 
 def _handle_exception(error_type: str, **kwargs: dict) -> None:
-    """Handle JWT-related exceptions."""
+    """
+    Handle authentication-related exceptions.
+
+    Either raises a USSOException or logs the error based on
+    the raise_exception flag.
+
+    Args:
+        error_type: Type of error to handle.
+        **kwargs: Additional exception parameters including:
+            - raise_exception: Whether to raise exception (default: True).
+            - message: Error message to include.
+
+    """
     if kwargs.get("raise_exception", True):
         raise USSOException(
             status_code=401, error=error_type, message=kwargs.get("message")

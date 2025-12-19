@@ -1,3 +1,5 @@
+"""Validation utilities for identifiers and credentials."""
+
 import logging
 import re
 import string
@@ -16,6 +18,16 @@ telegram_id_regex = re.compile(r"^\d+$")
 
 
 def convert_to_english_digits(input_str: str) -> str:
+    """
+    Convert Unicode digits to ASCII digits.
+
+    Args:
+        input_str: String that may contain Unicode digits.
+
+    Returns:
+        str: String with all digits converted to ASCII (0-9).
+
+    """
     result = []
     for char in input_str:
         if char.isdigit():
@@ -29,6 +41,18 @@ def convert_to_english_digits(input_str: str) -> str:
 def validate_phone(
     number: str, country_code: str | None = None
 ) -> tuple[bool, str, str]:
+    """
+    Validate a phone number.
+
+    Args:
+        number: Phone number string to validate.
+        country_code: Optional country code for validation.
+
+    Returns:
+        tuple[bool, str, str]: (is_valid, error_message, canonical_number).
+            error_message is None if valid.
+
+    """
     import phonenumbers
 
     try:
@@ -49,10 +73,32 @@ def validate_phone(
 
 
 def validate_telegram_id(inp: str) -> tuple[bool, str, str]:
+    """
+    Validate a Telegram user ID.
+
+    Args:
+        inp: String to validate as Telegram ID.
+
+    Returns:
+        tuple[bool, str, str]: (is_valid, error_message, canonical_id).
+            error_message is None if valid.
+
+    """
     return telegram_id_regex.search(inp), None, inp
 
 
 def validate_email(email: str) -> tuple[bool, str, str]:
+    """
+    Validate an email address.
+
+    Args:
+        email: Email address string to validate.
+
+    Returns:
+        tuple[bool, str, str]: (is_valid, error_message, canonical_email).
+            error_message is None if valid.
+
+    """
     import dns.resolver
     import email_validator
 
@@ -132,6 +178,7 @@ banned_words = {
 def _to_ascii_nfkc_lower(s: str) -> str:
     """
     Normalize to NFKC, enforce ASCII, then lowercase.
+
     Raises ValueError if non-ASCII survives normalization.
     """
     s = unicodedata.normalize("NFKC", s).strip()
@@ -144,9 +191,10 @@ def _to_ascii_nfkc_lower(s: str) -> str:
 
 def _canonical_for_reserved(s_lower_ascii: str) -> str:
     """
-    Canonicalize for reserved-name matching:
+    Canonicalize for reserved-name matching.
+
     - strip leading/trailing separators
-    - collapse any run of separators to a single underscore
+    - collapse any run of separators to a single underscore.
     """
     # strip leading/trailing separators
     t = s_lower_ascii.strip(separators)
@@ -177,8 +225,10 @@ def _contains_bad_word(
     s_lower_ascii: str, bad_words: Iterable[str]
 ) -> tuple[bool, str]:
     """
-    Check for bad words:
-    substring after removing separators (blocks 'b.a.d' evasion)
+    Check for bad words.
+
+    Checks substring after removing separators
+    (blocks 'b.a.d' evasion).
     """
     compact = _alnum_only(s_lower_ascii)
     for word in bad_words:
@@ -202,6 +252,7 @@ def validate_username(
 
     canonical_username is the lowercase form suitable for uniqueness
     checks/storage (after NFKC + ASCII enforcement).
+
     """
     # 1) Normalize & ASCII-enforce & lowercase
     try:
@@ -213,9 +264,11 @@ def validate_username(
     if not re.match(username_regex, uname):
         return (
             False,
-            "Username must be 3-30 chars, ASCII, start with a letter "
-            "or underscore, contain letters/digits/._- nothing else, "
-            "and must not end with or repeat separators.",
+            (
+                "Username must be 3-30 chars, ASCII, start with a letter "
+                "or underscore, contain letters/digits/._- nothing else, "
+                "and must not end with or repeat separators."
+            ),
             None,
         )
 
@@ -241,6 +294,20 @@ def validate_username(
 
 
 def determine_identifier_type(payload: dict) -> tuple[Enum, str]:
+    """
+    Determine the identifier type and value from a payload.
+
+    Checks for phone, email, or username in the payload, or attempts
+    to validate the 'sub' field as one of these types.
+
+    Args:
+        payload: Dictionary containing identifier information.
+
+    Returns:
+        tuple[Enum, str]: Tuple of (AuthIdentifier enum, canonical_value).
+            Returns (None, None) if no valid identifier is found.
+
+    """
     from ..enums import AuthIdentifier
 
     if payload.get("phone"):

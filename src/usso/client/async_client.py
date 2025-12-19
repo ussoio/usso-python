@@ -1,3 +1,5 @@
+"""Asynchronous HTTP client for USSO API."""
+
 import os
 from typing import Self
 
@@ -9,6 +11,28 @@ from .base_client import BaseUssoClient
 
 
 class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
+    """
+    Asynchronous HTTP client for USSO API.
+
+    This client extends httpx.AsyncClient and provides authentication
+    capabilities including API key, refresh token, and agent token support.
+    It automatically handles token refresh and session management.
+
+    Args:
+        api_key: API key for authentication. Defaults to USSO_API_KEY env var.
+        agent_id: Agent ID for agent-based authentication.
+            Defaults to AGENT_ID env var.
+        private_key: Private key for agent-based authentication.
+            Defaults to AGENT_PRIVATE_KEY env var.
+        refresh_token: Refresh token for token-based authentication.
+            Defaults to USSO_REFRESH_TOKEN env var.
+        usso_base_url: Base URL for USSO API.
+            Defaults to USSO_BASE_URL env var or "https://sso.usso.io".
+        client: Optional existing client to copy attributes from.
+        **kwargs: Additional arguments passed to httpx.AsyncClient.
+
+    """
+
     def __init__(
         self,
         *,
@@ -22,6 +46,11 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         client: Self | None = None,
         **kwargs: dict,
     ) -> None:
+        """
+        Initialize the async USSO client.
+
+        See class docstring for parameter details.
+        """
         httpx.AsyncClient.__init__(self, **kwargs)
         BaseUssoClient.__init__(
             self,
@@ -36,7 +65,23 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             self._refresh_sync()
 
     def _handle_refresh_response(self, response: httpx.Response) -> dict:
-        """Helper function to process the response from refresh requests."""
+        """
+        Process the response from refresh token requests.
+
+        Extracts access and refresh tokens from the response,
+        creates JWT objects, and updates the client headers
+        with the new access token.
+
+        Args:
+            response: HTTP response from the refresh endpoint.
+
+        Returns:
+            dict: Response data containing tokens.
+
+        Raises:
+            httpx.HTTPStatusError: If the response status indicates an error.
+
+        """
         response.raise_for_status()
         data: dict[str, str | dict[str, str]] = response.json()
         self.access_token = JWT(
@@ -58,6 +103,17 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         return data
 
     def _refresh_sync(self) -> dict:
+        """
+        Refresh access token synchronously using refresh token.
+
+        Returns:
+            dict: Response data containing new tokens.
+
+        Raises:
+            ValueError: If refresh_token is not available.
+            httpx.HTTPStatusError: If the refresh request fails.
+
+        """
         if not self.refresh_token:
             raise ValueError("refresh_token or usso_api_key is required")
 
@@ -67,6 +123,17 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         return self._handle_refresh_response(response)
 
     async def _refresh(self) -> dict:
+        """
+        Asynchronously refresh the access token using the refresh token.
+
+        Returns:
+            dict: Response data containing new tokens.
+
+        Raises:
+            ValueError: If refresh_token is not available.
+            httpx.HTTPStatusError: If the refresh request fails.
+
+        """
         if not self.refresh_token:
             raise ValueError("refresh_token or usso_api_key is required")
 
@@ -76,6 +143,16 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         return self._handle_refresh_response(response)
 
     async def get_session(self) -> Self:
+        """
+        Get or refresh the current session.
+
+        If using API key authentication, returns self immediately.
+        Otherwise, refreshes the access token if it's missing or expired.
+
+        Returns:
+            Self: The client instance with a valid session.
+
+        """
         if hasattr(self, "api_key") and self.api_key:
             return self
 
@@ -86,6 +163,20 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
     async def _request(
         self, method: str, url: str, **kwargs: dict
     ) -> httpx.Response:
+        """
+        Make an authenticated HTTP request.
+
+        Ensures the session is valid before making the request.
+
+        Args:
+            method: HTTP method (GET, POST, etc.).
+            url: Request URL.
+            **kwargs: Additional arguments passed to httpx request.
+
+        Returns:
+            httpx.Response: The HTTP response.
+
+        """
         session = await self.get_session()
         return await session.request(method, url, **kwargs)
 
@@ -95,6 +186,24 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         aud: str,
         tenant_id: str,
     ) -> str:
+        """
+        Generate and use an agent token for authentication.
+
+        Creates a JWT for the agent, exchanges it for an access token,
+        and updates the client headers.
+
+        Args:
+            scopes: List of scopes to request for the agent token.
+            aud: Audience for the JWT.
+            tenant_id: Tenant ID for the agent token.
+
+        Returns:
+            str: The access token obtained from the agent authentication.
+
+        Raises:
+            ValueError: If agent_id or private_key are not set.
+
+        """
         if not self.agent_id or not self.private_key:
             raise ValueError("agent_id and private_key are required")
 

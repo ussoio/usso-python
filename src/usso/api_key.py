@@ -1,3 +1,5 @@
+"""API key authentication utilities."""
+
 import logging
 import os
 
@@ -26,7 +28,8 @@ def _handle_exception(error_type: str, **kwargs: dict) -> None:
 
 @cachetools.func.ttl_cache(maxsize=128, ttl=60)
 def fetch_api_key_data(api_key_verify_url: str, api_key: str) -> UserData:
-    """Fetch user data using an API key.
+    """
+    Fetch user data using an API key.
 
     Args:
         api_key_verify_url: The API key verify URL to use for verification
@@ -54,7 +57,8 @@ def fetch_api_key_data(api_key_verify_url: str, api_key: str) -> UserData:
 async def fetch_api_key_data_async(
     api_key_verify_url: str, api_key: str
 ) -> UserData:
-    """Fetch user data using an API key.
+    """
+    Fetch user data using an API key.
 
     Args:
         api_key_verify_url: The API key verify URL to use for verification

@@ -10,6 +10,7 @@ from usso_jwt.algorithms import AbstractKey, EdDSAKey
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_debugpy() -> None:
+    """Set up debugpy for remote debugging."""
     if os.getenv("DEBUGPY", "False").lower() in ("true", "1", "yes"):
         import debugpy  # noqa: T100
 
@@ -19,6 +20,7 @@ def setup_debugpy() -> None:
 
 @pytest.fixture(scope="session")
 def test_key() -> AbstractKey:
+    """Create a test key."""
     return EdDSAKey.generate()
 
 
@@ -61,6 +63,7 @@ def test_valid_token(
     test_header: dict,
     test_key: AbstractKey,
 ) -> str:
+    """Create a test valid token."""
     jwt = sign.generate_jwt(
         header=test_header,
         payload=test_valid_payload,

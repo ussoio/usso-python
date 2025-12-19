@@ -1,3 +1,5 @@
+"""Authorization and scope checking utilities."""
+
 import fnmatch
 from urllib.parse import parse_qs
 
@@ -15,7 +17,8 @@ PRIVILEGE_LEVELS = {
 
 
 def parse_scope(scope: str) -> tuple[str, list[str], dict[str, str]]:
-    """Parse a scope string into (action, path_parts, filters).
+    """
+    Parse a scope string into (action, path_parts, filters).
 
     Examples:
         "read:media/files/transaction?user_id=123" ->
@@ -55,6 +58,19 @@ def parse_scope(scope: str) -> tuple[str, list[str], dict[str, str]]:
 
 
 def _normalize_path(path: list[str] | str) -> list[str]:
+    """
+    Normalize a path to a list of path segments.
+
+    Args:
+        path: Path as string (slash-separated) or list of segments.
+
+    Returns:
+        list[str]: List of path segments.
+
+    Raises:
+        TypeError: If path is neither string nor list.
+
+    """
     if isinstance(path, str):
         return path.split("/")
     elif isinstance(path, list):
@@ -66,6 +82,18 @@ def _normalize_path(path: list[str] | str) -> list[str]:
 def _match_path_parts(
     user_parts: list[str], req_parts: list[str], strict: bool
 ) -> bool:
+    """
+    Match resource path parts from right to left, supporting wildcards.
+
+    Args:
+        user_parts: User's allowed path parts.
+        req_parts: Requested path parts.
+        strict: Whether to use strict matching mode.
+
+    Returns:
+        bool: True if paths match, False otherwise.
+
+    """
     wildcard_found = False
     # Match resource name (rightmost)
     if not fnmatch.fnmatch(req_parts[-1], user_parts[-1]):
@@ -102,7 +130,20 @@ def is_path_match(
 
 
 def is_filter_match(user_filters: dict, requested_filters: dict) -> bool:
-    """All user filters must match requested filters."""
+    """
+    Check if user filters match requested filters.
+
+    All user filters must be present in requested filters and match
+    using fnmatch pattern matching.
+
+    Args:
+        user_filters: Filters from user's scope.
+        requested_filters: Filters from the request.
+
+    Returns:
+        bool: True if all user filters match, False otherwise.
+
+    """
     for k, v in user_filters.items():
         if k not in requested_filters or not fnmatch.fnmatch(
             str(requested_filters[k]), v
@@ -116,8 +157,10 @@ def get_scope_filters(
     resource: str,
     user_scopes: list[str],
 ) -> list[dict]:
-    """Return filters extracted from user scopes that:
+    """
+    Return filters extracted from user scopes.
 
+    Filters are extracted from scopes that:
     - Have equal or higher privilege level than the requested action.
     - Match the requested resource path.
     """
@@ -141,10 +184,12 @@ def get_scope_filters(
 
 
 def broadest_scope_filter(filters: list[dict]) -> dict:
-    """Return the broadest scope filter. It is used to select the most
-    restrictive filter from the list of filters. by assigning a score
-    to each filter based on the restriction bits. the filter with the
-    lowest score is the most restrictive.
+    """
+    Return the broadest scope filter.
+
+    It is used to select the most restrictive filter from the list of filters
+    by assigning a score to each filter based on the restriction bits.
+    The filter with the lowest score is the most restrictive.
 
     filters = [
         {"tenant_id": "t1"},                           # score = 1
@@ -182,6 +227,22 @@ def owner_authorization(
     self_action: str = "owner",
     action: str = "read",
 ) -> bool:
+    """
+    Check if user has owner-level authorization for a resource.
+
+    Grants access if the requested resource filter matches the user's ID
+    and the user's privilege level is sufficient.
+
+    Args:
+        requested_filter: Filter from the request (e.g., {"user_id": "123"}).
+        user_id: The user's ID to check against.
+        self_action: The user's privilege level. Defaults to "owner".
+        action: The requested action privilege level. Defaults to "read".
+
+    Returns:
+        bool: True if user has owner authorization, False otherwise.
+
+    """
     user_level = PRIVILEGE_LEVELS.get(self_action or "read", 10)
     req_level = PRIVILEGE_LEVELS.get(action or "read", 10)
 
@@ -202,6 +263,20 @@ def is_authorized(
     *,
     strict: bool = False,
 ) -> bool:
+    """
+    Check if a user scope authorizes access to a requested resource.
+
+    Args:
+        user_scope: The user's scope string (e.g., "read:media/files").
+        requested_path: The resource path being requested.
+        requested_action: The action being requested. Defaults to "read".
+        requested_filter: Optional filters for the request.
+        strict: Whether to use strict path matching. Defaults to False.
+
+    Returns:
+        bool: True if authorized, False otherwise.
+
+    """
     user_action, user_path, user_filters = parse_scope(user_scope)
 
     if not is_path_match(user_path, requested_path, strict=strict):
@@ -226,13 +301,15 @@ def check_access(
     filters: list[dict[str, str]] | dict[str, str] | None = None,
     strict: bool = False,
 ) -> bool:
-    """Check if the user has the required access to a resource.
+    """
+    Check if the user has the required access to a resource.
 
     Args:
         user_scopes: list of user scope strings
         resource_path: resource path like "media/files/transactions"
         action: requested action like "read", "update", etc.
         filters: optional dict of filters like {"user_id": "abc"}
+        strict: whether to use strict path matching
 
     Returns:
         True if access is granted, False otherwise
@@ -258,6 +335,22 @@ def check_access(
 
 
 def is_subset_scope(*, subset_scope: str, super_scope: str) -> bool:
+    """
+    Check if subset_scope is a subset of super_scope.
+
+    A scope is a subset if:
+    1. Its privilege level is <= the super scope's level
+    2. Its path matches the super scope's path
+    3. All super scope filters are present in the subset scope
+
+    Args:
+        subset_scope: The scope to check if it's a subset.
+        super_scope: The scope to check against.
+
+    Returns:
+        bool: True if subset_scope is a subset of super_scope, False otherwise.
+
+    """
     child_action, child_path, child_filters = parse_scope(subset_scope)
     parent_action, parent_path, parent_filters = parse_scope(super_scope)
 
@@ -280,6 +373,18 @@ def is_subset_scope(*, subset_scope: str, super_scope: str) -> bool:
 def has_subset_scope(
     *, subset_scope: str, user_scopes: list[str] | str | None
 ) -> bool:
+    """
+    Check if any user scope contains the subset scope.
+
+    Args:
+        subset_scope: The scope to check for.
+        user_scopes: List of user scopes or a single scope string.
+
+    Returns:
+        bool: True if any user scope contains the subset scope,
+            False otherwise.
+
+    """
     user_scopes = user_scopes or []
     if isinstance(user_scopes, str):
         user_scopes = [user_scopes]
@@ -292,8 +397,21 @@ def has_subset_scope(
 def get_common_scopes(
     *, scopes_a: list[str], scopes_b: list[str]
 ) -> list[str]:
-    """Update the scopes for the session."""
+    """
+    Get common scopes between two scope lists.
 
+    Removes scopes from scopes_a that are not permitted by scopes_b,
+    and adds any permitted scopes from scopes_b that are subsets of
+    the removed scopes.
+
+    Args:
+        scopes_a: First list of scopes (typically user scopes).
+        scopes_b: Second list of scopes (typically session/permitted scopes).
+
+    Returns:
+        list[str]: Updated list of common scopes.
+
+    """
     not_permitted_scopes = [
         scope
         for scope in scopes_a

@@ -1,9 +1,12 @@
+"""Authentication-related enumerations."""
+
 from collections.abc import Callable
 from enum import StrEnum
 
 
 class AuthIdentifier(StrEnum):
-    """Authentication identifiers.
+    """
+    Authentication identifiers.
 
     These are the ways a user or application can be identified in the system.
     Each identifier type represents a different way to look up an entity.
@@ -26,7 +29,16 @@ class AuthIdentifier(StrEnum):
     def get_identifier_validator(
         self,
     ) -> Callable[[str], tuple[bool, str, str]]:
-        """Get the validator for this identifier type."""
+        """
+        Get the validator function for this identifier type.
+
+        Returns:
+            Callable: Validator function that returns
+                (is_valid, error, canonical_value).
+                Returns a passthrough validator if no specific
+                validator exists.
+
+        """
         import utils.validators
 
         return {
@@ -38,7 +50,8 @@ class AuthIdentifier(StrEnum):
 
 
 class AuthSecret(StrEnum):
-    """Authentication secrets.
+    """
+    Authentication secrets.
 
     These are the methods used to verify the identity of a user.
     Each secret type represents a different way to prove identity.
@@ -72,8 +85,15 @@ class AuthSecret(StrEnum):
     ) -> AuthIdentifier | None:
         """
         Get the corresponding identifier type for an authentication method.
-        """
 
+        Args:
+            method: The authentication secret method.
+
+        Returns:
+            AuthIdentifier | None: The corresponding identifier type, or None
+                if no mapping exists for the method.
+
+        """
         method_to_identifier_map: dict[AuthSecret, AuthIdentifier] = {
             cls.EMAIL_OTP: AuthIdentifier.EMAIL,
             cls.PHONE_OTP: AuthIdentifier.PHONE,
@@ -86,6 +106,12 @@ class AuthSecret(StrEnum):
 
 
 class LoginStatus(StrEnum):
+    """
+    Login process status values.
+
+    Represents the various states a login process can be in.
+    """
+
     REGISTRATION_REQUIRED = "registration_required"
     VERIFICATION_REQUIRED = "verification_required"
     MFA_REQUIRED = "mfa_required"
@@ -96,12 +122,25 @@ class LoginStatus(StrEnum):
 
 
 class ChannelType(StrEnum):
+    """
+    Communication channel types for OTP delivery.
+
+    Represents the different channels through which one-time passwords
+    can be sent to users.
+    """
+
     sms = "sms"
     bale = "bale"
     email = "email"
 
 
 class ActivationStatus(StrEnum):
+    """
+    User account activation status values.
+
+    Represents the various activation states a user account can have.
+    """
+
     ACTIVE = "active"
     DEACTIVE = "deactive"
     PENDING = "pending"

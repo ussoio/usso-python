@@ -1,3 +1,5 @@
+"""Test FastAPI integration."""
+
 import json
 import os
 from collections.abc import AsyncGenerator
@@ -19,6 +21,7 @@ from src.usso.integrations.fastapi import (
 
 @pytest.fixture(scope="session")
 def app(test_key: AbstractKey) -> FastAPI:
+    """Fixture to provide a FastAPI app."""
     import fastapi
 
     os.environ["JWT_CONFIG"] = json.dumps({
@@ -35,14 +38,14 @@ def app(test_key: AbstractKey) -> FastAPI:
 
     @app.get("/user")
     async def get_user(
-        user: UserData = Depends(usso.usso_access_security),  # noqa: B008
+        user: UserData = Depends(usso.usso_access_security),
     ) -> dict:
         return user.model_dump()
 
     @app.websocket("/ws")
     async def websocket_endpoint(
         websocket: WebSocket,
-        user: UserData = Depends(usso.jwt_access_security_ws),  # noqa: B008
+        user: UserData = Depends(usso.jwt_access_security_ws),
     ) -> None:
         await websocket.accept()
         await websocket.send_json({"msg": user.model_dump()})
@@ -63,12 +66,14 @@ async def client(app: FastAPI) -> AsyncGenerator[httpx.AsyncClient]:
 
 @pytest.mark.asyncio
 async def test_get_user_no_token(client: httpx.AsyncClient) -> None:
+    """Test get user endpoint with no token."""
     response = await client.get("/user")
     assert response.status_code == 401
 
 
 @pytest.mark.asyncio
 async def test_get_user_with_invalid_token(client: httpx.AsyncClient) -> None:
+    """Test get user endpoint with invalid token."""
     response = await client.get(
         "/user",
         headers={"Authorization": "Bearer test"},
@@ -82,6 +87,7 @@ async def test_get_user_with_token(
     test_valid_token: str,
     test_valid_payload: dict,
 ) -> None:
+    """Test get user endpoint with valid token."""
     response = await client.get(
         "/user",
         headers={"Authorization": f"Bearer {test_valid_token}"},
@@ -95,6 +101,7 @@ def test_websocket(
     test_valid_token: str,
     test_valid_payload: dict,
 ) -> None:
+    """Test websocket endpoint."""
     client = TestClient(app)
     with client.websocket_connect(
         "/ws", headers={"Authorization": f"Bearer {test_valid_token}"}

@@ -1,3 +1,5 @@
+"""FastAPI integration for USSO authentication."""
+
 from .dependency import USSOAuthentication
 from .handler import EXCEPTION_HANDLERS, usso_exception_handler
 

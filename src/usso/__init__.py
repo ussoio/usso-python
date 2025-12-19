@@ -1,4 +1,5 @@
-"""USSO - Universal Single Sign-On Client.
+"""
+USSO - Universal Single Sign-On Client.
 
 A plug-and-play client for integrating universal single sign-on (SSO)
 with Python frameworks, enabling secure and seamless authentication

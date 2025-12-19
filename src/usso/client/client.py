@@ -1,14 +1,39 @@
+"""Synchronous HTTP client for USSO API."""
+
 import os
 from typing import Self
 
 import httpx
 from usso_jwt.schemas import JWT, JWTConfig
 
+from ..schemas import UserResponse
 from ..utils import agent
 from .base_client import BaseUssoClient
 
 
 class UssoClient(httpx.Client, BaseUssoClient):
+    """
+    Synchronous HTTP client for USSO API.
+
+    This client extends httpx.Client and provides authentication
+    capabilities including API key, refresh token, and agent token support.
+    It automatically handles token refresh and session management.
+
+    Args:
+        api_key: API key for authentication. Defaults to USSO_API_KEY env var.
+        agent_id: Agent ID for agent-based authentication.
+            Defaults to AGENT_ID env var.
+        private_key: Private key for agent-based authentication.
+            Defaults to AGENT_PRIVATE_KEY env var.
+        refresh_token: Refresh token for token-based authentication.
+            Defaults to USSO_REFRESH_TOKEN env var.
+        usso_base_url: Base URL for USSO API.
+            Defaults to USSO_BASE_URL env var or "https://sso.usso.io".
+        client: Optional existing client to copy attributes from.
+        **kwargs: Additional arguments passed to httpx.Client.
+
+    """
+
     def __init__(
         self,
         *,
@@ -22,6 +47,11 @@ class UssoClient(httpx.Client, BaseUssoClient):
         client: Self | None = None,
         **kwargs: dict,
     ) -> None:
+        """
+        Initialize the synchronous USSO client.
+
+        See class docstring for parameter details.
+        """
         httpx.Client.__init__(self, **kwargs)
 
         BaseUssoClient.__init__(
@@ -37,6 +67,17 @@ class UssoClient(httpx.Client, BaseUssoClient):
             self._refresh()
 
     def _refresh(self) -> dict:
+        """
+        Refresh the access token using the refresh token.
+
+        Returns:
+            dict: Response data containing new tokens.
+
+        Raises:
+            ValueError: If refresh_token is not available.
+            httpx.HTTPStatusError: If the refresh request fails.
+
+        """
         if not self.refresh_token:
             raise ValueError("refresh_token is required")
 
@@ -55,6 +96,16 @@ class UssoClient(httpx.Client, BaseUssoClient):
         return response.json()
 
     def get_session(self) -> Self:
+        """
+        Get or refresh the current session.
+
+        If using API key authentication, returns self immediately.
+        Otherwise, refreshes the access token if it's missing or expired.
+
+        Returns:
+            Self: The client instance with a valid session.
+
+        """
         if self.api_key:
             return self
 
@@ -65,6 +116,20 @@ class UssoClient(httpx.Client, BaseUssoClient):
     def _request(
         self, method: str, url: str, **kwargs: dict
     ) -> httpx.Response:
+        """
+        Make an authenticated HTTP request.
+
+        Ensures the session is valid before making the request.
+
+        Args:
+            method: HTTP method (GET, POST, etc.).
+            url: Request URL.
+            **kwargs: Additional arguments passed to httpx request.
+
+        Returns:
+            httpx.Response: The HTTP response.
+
+        """
         self.get_session()
         return super().request(self, method, url, **kwargs)
 
@@ -74,6 +139,24 @@ class UssoClient(httpx.Client, BaseUssoClient):
         aud: str,
         tenant_id: str,
     ) -> str:
+        """
+        Generate and use an agent token for authentication.
+
+        Creates a JWT for the agent, exchanges it for an access token,
+        and updates the client headers.
+
+        Args:
+            scopes: List of scopes to request for the agent token.
+            aud: Audience for the JWT.
+            tenant_id: Tenant ID for the agent token.
+
+        Returns:
+            str: The access token obtained from the agent authentication.
+
+        Raises:
+            ValueError: If agent_id or private_key are not set.
+
+        """
         if not self.agent_id or not self.private_key:
             raise ValueError("agent_id and private_key are required")
 
@@ -87,3 +170,15 @@ class UssoClient(httpx.Client, BaseUssoClient):
         token = agent.get_agent_token(jwt)
         self.headers.update({"Authorization": f"Bearer {token}"})
         return token
+
+    def get_users(self) -> list[UserResponse]:
+        """
+        Get users from USSO API.
+
+        Returns:
+            list[UserResponse]: List of users.
+
+        """
+        response = self.get("/users")
+        response.raise_for_status()
+        return [UserResponse.model_validate(user) for user in response.json()]

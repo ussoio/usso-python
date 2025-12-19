@@ -1,3 +1,5 @@
+"""Tests for authorization and scope checking."""
+
 import pytest
 
 from src.usso.authorization import (
@@ -25,6 +27,7 @@ def test_owner_authorization(
     action: str,
     expected: bool,
 ) -> None:
+    """Test owner authorization."""
     assert (
         owner_authorization(requested_filter, user_id, self_action, action)
         == expected
@@ -57,6 +60,7 @@ def test_is_authorized(
     strict: bool,
     expected: bool,
 ) -> None:
+    """Test is authorized."""
     assert (
         is_authorized(
             user_scope,
@@ -97,11 +101,13 @@ def test_is_authorized(
 def test_path_match(
     user_path: str, requested_path: str, expected: bool
 ) -> None:
+    """Test path match."""
     assert is_path_match(user_path, requested_path, strict=False) == expected
 
 
 # Define pytest tests
 def test_exact_match_id() -> None:
+    """Test exact match id."""
     scopes = ["read:media/file-manager/files?uid=file123"]
     assert (
         check_access(
@@ -120,6 +126,7 @@ def test_exact_match_id() -> None:
 
 # Define pytest tests
 def test_wildcard() -> None:
+    """Test wildcard."""
     scopes = [
         "update:media/files/transactions?user_id=abc",
         "read:media/files/*",
@@ -146,6 +153,7 @@ def test_wildcard() -> None:
 
 
 def test_insufficient_privilege() -> None:
+    """Test insufficient privilege."""
     scopes = ["read:media/files/file:uid:file123"]
     assert (
         check_access(
@@ -163,6 +171,7 @@ def test_insufficient_privilege() -> None:
 
 
 def test_wildcard_match() -> None:
+    """Test wildcard match."""
     scopes = ["manage:media/files/file?*"]
     assert (
         check_access(
@@ -180,6 +189,7 @@ def test_wildcard_match() -> None:
 
 
 def test_match_by_user_id() -> None:
+    """Test match by user id."""
     scopes = ["manage:finance/wallet/transaction?user=user_1"]
     assert (
         check_access(
@@ -206,6 +216,7 @@ def test_match_by_user_id() -> None:
 
 
 def test_match_by_workspace_id() -> None:
+    """Test match by workspace id."""
     scopes = ["delete:finance/wallet/transaction?workspace_id=ws_7"]
     assert (
         check_access(
@@ -223,21 +234,25 @@ def test_match_by_workspace_id() -> None:
 
 
 def test_minimal_params_success() -> None:
+    """Test minimal params success."""
     scopes = ["create:file?*"]
     assert check_access(scopes, "file", "create") is True
 
 
 def test_minimal_params_fail() -> None:
+    """Test minimal params fail."""
     scopes = ["read:file?*"]
     assert check_access(scopes, "file", "create") is False
 
 
 def test_minimal_params_read_create_fail() -> None:
+    """Test minimal params read create fail."""
     scopes = ["file"]
     assert check_access(scopes, "file", "create") is False
 
 
 def test_scope_subset() -> None:
+    """Test scope subset."""
     assert is_subset_scope(
         subset_scope="read:media/files?user_id=123",
         super_scope="read:media/files",

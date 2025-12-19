@@ -1,3 +1,5 @@
+"""USSO authentication client."""
+
 import json
 import logging
 import os
@@ -15,7 +17,8 @@ logger = logging.getLogger("usso")
 
 
 class UssoAuth:
-    """Main authentication client for USSO.
+    """
+    Main authentication client for USSO.
 
     This client handles token validation, user data retrieval,
     and API key verification.
@@ -28,10 +31,13 @@ class UssoAuth:
         from_usso_base_url: str | None = None,
         **kwargs: object,
     ) -> None:
-        """Initialize the USSO authentication client.
+        """
+        Initialize the USSO authentication client.
 
         Args:
-            jwt_config: JWT configuration(s) to use for token validation
+            jwt_config: JWT configuration(s) to use for token validation.
+            from_usso_base_url: Base URL for dynamic JWKS resolution.
+            **kwargs: Additional arguments (currently unused).
 
         """
         if jwt_config is None:
@@ -53,7 +59,8 @@ class UssoAuth:
         raise_exception: bool = True,
         **kwargs: dict,
     ) -> UserData | None:
-        """Get user data from a JWT token.
+        """
+        Get user data from a JWT token.
 
         Args:
             token: The JWT token to validate
@@ -113,7 +120,8 @@ class UssoAuth:
         )
 
     def user_data_from_api_key(self, api_key: str) -> UserData:
-        """Get user data from an API key.
+        """
+        Get user data from an API key.
 
         Args:
             api_key: The API key to verify
@@ -131,7 +139,8 @@ class UssoAuth:
         )
 
     async def user_data_from_api_key_async(self, api_key: str) -> UserData:
-        """Get user data from an API key.
+        """
+        Get user data from an API key.
 
         Args:
             api_key: The API key to verify

@@ -1,3 +1,5 @@
+"""User data models and utilities."""
+
 from collections.abc import Callable
 from enum import StrEnum
 from typing import Any, Literal
@@ -6,6 +8,12 @@ from pydantic import BaseModel
 
 
 class TokenType(StrEnum):
+    """
+    JWT token types.
+
+    Enumeration of different token types used in the USSO system.
+    """
+
     ACCESS = "access"
     REFRESH = "refresh"
     SECURE_TOKEN = "secure"  # noqa: S105
@@ -14,6 +22,33 @@ class TokenType(StrEnum):
 
 
 class UserData(BaseModel):
+    """
+    User data model extracted from JWT tokens.
+
+    Contains both standard JWT claims and custom USSO claims.
+    Provides convenient properties for accessing common user attributes.
+
+    Attributes:
+        iss: Issuer claim (JWT standard).
+        sub: Subject claim (JWT standard) - typically the user ID.
+        aud: Audience claim (JWT standard).
+        iat: Issued at timestamp (JWT standard).
+        nbf: Not before timestamp (JWT standard).
+        exp: Expiration timestamp (JWT standard).
+        jti: JWT ID claim (JWT standard).
+        token_type: Type of token (access, refresh, etc.).
+        session_id: Session identifier.
+        tenant_id: Tenant identifier.
+        workspace_id: Workspace identifier.
+        roles: List of user roles.
+        scopes: List of user scopes.
+        acr: Authentication context class reference.
+        amr: Authentication methods references.
+        signing_level: Token signing level.
+        claims: Dictionary containing all claims including custom ones.
+
+    """
+
     # JWT standard claims
     iss: str | None = None
     sub: str | None = None
@@ -57,6 +92,11 @@ class UserData(BaseModel):
         signing_level: str | None = None,
         **kwargs: dict,
     ) -> None:
+        """
+        Initialize user data from JWT claims.
+
+        See class docstring for parameter details.
+        """
         super().__init__(
             jti=jti,
             token_type=token_type,
@@ -79,28 +119,64 @@ class UserData(BaseModel):
 
     @property
     def user_id(self) -> str:
+        """
+        Get the user ID from claims or subject.
+
+        Returns:
+            str: User ID from claims or subject claim,
+                empty string if neither exists.
+
+        """
         if self.claims and "user_id" in self.claims:
             return self.claims["user_id"]
         return self.sub or ""
 
     @property
     def uid(self) -> str:
+        """
+        Get the user ID (alias for user_id).
+
+        Returns:
+            str: User ID from claims or subject claim.
+
+        """
         return self.user_id
 
     @property
     def user_name(self) -> str:
+        """
+        Get the user's name from claims.
+
+        Returns:
+            str: User name from claims, empty string if not found.
+
+        """
         if self.claims and "user_name" in self.claims:
             return self.claims["user_name"]
         return ""
 
     @property
     def email(self) -> str:
+        """
+        Get the user's email from claims.
+
+        Returns:
+            str: Email address from claims, empty string if not found.
+
+        """
         if self.claims and "email" in self.claims:
             return self.claims["email"]
         return ""
 
     @property
     def phone(self) -> str:
+        """
+        Get the user's phone number from claims.
+
+        Returns:
+            str: Phone number from claims, empty string if not found.
+
+        """
         if self.claims and "phone" in self.claims:
             return self.claims["phone"]
         return ""
@@ -121,6 +197,15 @@ class UserData(BaseModel):
         fallback: Callable[[Any], Any] | None = None,
         serialize_as_any: bool = False,
     ) -> dict:
+        """
+        Dump model to dictionary.
+
+        See Pydantic BaseModel.model_dump for parameter details.
+
+        Returns:
+            dict: Dictionary representation of the model.
+
+        """
         return super().model_dump(
             mode=mode,
             include=include,

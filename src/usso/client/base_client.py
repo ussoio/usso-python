@@ -1,3 +1,5 @@
+"""Base client class for USSO authentication."""
+
 import os
 from typing import Self
 
@@ -5,6 +7,30 @@ from usso_jwt.schemas import JWT, JWTConfig
 
 
 class BaseUssoClient:
+    """
+    Base client class for USSO authentication.
+
+    Provides common functionality for both sync and async USSO clients,
+    including authentication setup, token management, and configuration.
+
+    Args:
+        api_key: API key for authentication. Defaults to USSO_API_KEY env var.
+        agent_id: Agent ID for agent-based authentication.
+            Defaults to AGENT_ID env var.
+        private_key: Private key for agent-based authentication.
+            Defaults to AGENT_PRIVATE_KEY env var.
+        refresh_token: Refresh token for token-based authentication.
+            Defaults to USSO_REFRESH_TOKEN env var.
+        usso_base_url: Base URL for USSO API.
+            Defaults to USSO_BASE_URL env var or "https://sso.usso.io".
+        client: Optional existing client to copy attributes from.
+
+    Raises:
+        ValueError: If none of the required authentication credentials
+            are provided.
+
+    """
+
     def __init__(
         self,
         *,
@@ -12,9 +38,16 @@ class BaseUssoClient:
         agent_id: str | None = None,
         private_key: str | None = None,
         refresh_token: str | None = None,
-        usso_base_url: str | None = os.getenv("USSO_BASE_URL", "https://sso.usso.io"),
+        usso_base_url: str | None = os.getenv(
+            "USSO_BASE_URL", "https://sso.usso.io"
+        ),
         client: Self | None = None,
     ) -> None:
+        """
+        Initialize the base USSO client.
+
+        See class docstring for parameter details.
+        """
         if client:
             self.copy_attributes_from(client)
             return
@@ -57,6 +90,13 @@ class BaseUssoClient:
         self.headers = getattr(self, "headers", {})
 
     def copy_attributes_from(self, client: Self) -> None:
+        """
+        Copy authentication attributes from another client instance.
+
+        Args:
+            client: The client instance to copy attributes from.
+
+        """
         self.usso_base_url = client.usso_base_url
         self._refresh_token = client._refresh_token
         self.access_token = client.access_token
@@ -67,6 +107,15 @@ class BaseUssoClient:
 
     @property
     def refresh_token(self) -> JWT:
+        """
+        Get the refresh token, validating it if present.
+
+        If the refresh token is invalid or expired, it is cleared.
+
+        Returns:
+            JWT: The refresh token JWT object, or None if invalid/expired.
+
+        """
         if (
             self._refresh_token
             and self._refresh_token.verify(
