@@ -6,6 +6,7 @@ from typing import Self
 import httpx
 from usso_jwt.schemas import JWT, JWTConfig
 
+from ..enums import AuthIdentifier
 from ..schemas import UserResponse
 from ..utils import agent
 from .base_client import BaseUssoClient
@@ -207,5 +208,27 @@ class UssoClient(httpx.Client, BaseUssoClient):
 
         """
         response = self.get(f"/api/sso/v1/profiles/{user_id}")
+        response.raise_for_status()
+        return response.json()
+
+    def add_identifier(
+        self, user_id: str, identifier_type: AuthIdentifier, identifier: str
+    ) -> dict:
+        """
+        Add an identifier to a user.
+
+        Args:
+            user_id: User ID.
+            identifier_type: Identifier type.
+            identifier: Identifier value.
+
+        Returns:
+            dict: Response data.
+
+        """
+        response = self.post(
+            f"/api/sso/v1/users/{user_id}/identifiers",
+            json={"type": identifier_type, "identifier": identifier},
+        )
         response.raise_for_status()
         return response.json()
