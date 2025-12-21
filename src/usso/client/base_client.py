@@ -56,15 +56,17 @@ class BaseUssoClient:
             api_key = os.getenv("USSO_API_KEY")
 
         if not (api_key or refresh_token or (agent_id and private_key)):
-            if os.getenv("USSO_REFRESH_TOKEN"):
+            if os.getenv("USSO_API_KEY"):
+                api_key = os.getenv("USSO_API_KEY")
+            elif os.getenv("USSO_REFRESH_TOKEN"):
                 refresh_token = os.getenv("USSO_REFRESH_TOKEN")
             elif os.getenv("AGENT_ID") and os.getenv("AGENT_PRIVATE_KEY"):
                 agent_id = os.getenv("AGENT_ID")
                 private_key = os.getenv("AGENT_PRIVATE_KEY")
             else:
                 raise ValueError(
-                    "one of api_key, refresh_token, usso_admin_api_key, "
-                    "app_id and app_secret or access_token is required"
+                    "one of api_key, refresh_token, "
+                    "agent_id and private_key is required"
                 )
 
         if api_key:
@@ -79,12 +81,14 @@ class BaseUssoClient:
 
         self.usso_base_url = usso_base_url
         self.usso_refresh_url = f"{usso_base_url}/api/sso/v1/auth/refresh"
-        self._refresh_token = JWT(
-            token=refresh_token,
-            config=JWTConfig(
-                jwks_url=f"{self.usso_base_url}/.well-known/jwks.json"
-            ),
-        )
+
+        if refresh_token:
+            self._refresh_token = JWT(
+                token=refresh_token,
+                config=JWTConfig(
+                    jwks_url=f"{self.usso_base_url}/.well-known/jwks.json"
+                ),
+            )
 
         self.access_token = None
         self.headers = getattr(self, "headers", {})

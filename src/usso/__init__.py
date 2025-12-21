@@ -6,7 +6,8 @@ with Python frameworks, enabling secure and seamless authentication
 across microservices.
 """
 
-from .client import UssoAuth
+from .auth import UssoAuth
+from .client import AsyncUssoClient, UssoClient
 from .config import APIHeaderConfig, AuthConfig, HeaderConfig
 from .exceptions import USSOException
 from .user import UserData
@@ -14,7 +15,10 @@ from .user import UserData
 __version__ = "0.28.0"
 
 __all__ = [
+    # API header config
     "APIHeaderConfig",
+    # Async client
+    "AsyncUssoClient",
     # Configuration
     "AuthConfig",
     "HeaderConfig",
@@ -22,6 +26,8 @@ __all__ = [
     "USSOException",
     # Models
     "UserData",
-    # Main client
+    # Main authentication class
     "UssoAuth",
+    # Main client
+    "UssoClient",
 ]

@@ -8,13 +8,13 @@ from collections.abc import Iterable
 from enum import Enum
 
 username_regex = (
-    r"^(?=.{3,30}$)[A-Za-z_](?:[A-Za-z0-9]|[._-](?=[A-Za-z0-9]))*$"
+    r"^(?=.{3,30}$)[A-Za-z0-9_](?:[A-Za-z0-9]|[._-](?=[A-Za-z0-9]))*$"
 )
 email_regex = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 international_phone_regex = re.compile(
     r"^[\+]?(0{0,2})(9[976]\d|8[987530]\d|6[987]\d|5[90]\d|42\d|3[875]\d|2[98654321]\d|9[8543210]|8[6421]|6[6543210]|5[87654321]|4[987654310]|3[9643210]|2[70]|7|1)\W*\d\W*\d\W*\d\W*\d\W*\d\W*\d\W*\d\W*\d\W*(\d{1,2})$"
 )
-telegram_id_regex = re.compile(r"^\d+$")
+telegram_id_regex = re.compile(r"^\d{5,15}+$")
 
 
 def convert_to_english_digits(input_str: str) -> str:
@@ -63,13 +63,13 @@ def validate_phone(
             != parsed.country_code
         ):
             return False, "Invalid country code", None
-        return (
-            phonenumbers.is_valid_number(parsed),
-            None,
-            f"{parsed.country_code}{parsed.national_number}",
-        )
+
+        if not phonenumbers.is_valid_number(parsed):
+            return False, "Invalid phone number", None
     except phonenumbers.NumberParseException as e:
         return False, str(e), None
+
+    return True, None, f"{parsed.country_code}{parsed.national_number}"
 
 
 def validate_telegram_id(inp: str) -> tuple[bool, str, str]:
@@ -84,7 +84,9 @@ def validate_telegram_id(inp: str) -> tuple[bool, str, str]:
             error_message is None if valid.
 
     """
-    return telegram_id_regex.search(inp), None, inp
+    if telegram_id_regex.search(inp):
+        return True, None, inp
+    return False, "Invalid Telegram ID", None
 
 
 def validate_email(email: str) -> tuple[bool, str, str]:

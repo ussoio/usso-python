@@ -52,7 +52,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
 
         See class docstring for parameter details.
         """
-        httpx.Client.__init__(self, **kwargs)
+        httpx.Client.__init__(self, base_url=usso_base_url, **kwargs)
 
         BaseUssoClient.__init__(
             self,
@@ -171,7 +171,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
         self.headers.update({"Authorization": f"Bearer {token}"})
         return token
 
-    def get_users(self) -> list[UserResponse]:
+    def get_users(self, params: dict | None = None) -> list[UserResponse]:
         """
         Get users from USSO API.
 
@@ -179,6 +179,25 @@ class UssoClient(httpx.Client, BaseUssoClient):
             list[UserResponse]: List of users.
 
         """
-        response = self.get("/users")
+        response = self.get("/api/sso/v1/users", params=params)
+        if response.status_code != 200:
+            import logging
+
+            logging.error("Error getting users: %s", response.json())
         response.raise_for_status()
-        return [UserResponse.model_validate(user) for user in response.json()]
+        return [
+            UserResponse.model_validate(user)
+            for user in response.json().get("items", [])
+        ]
+
+    def create_users(self, data: dict | None = None) -> UserResponse:
+        """
+        Create a user in USSO API.
+
+        Returns:
+            UserResponse: Created user.
+
+        """
+        response = self.post("/api/sso/v1/users", json=data)
+        response.raise_for_status()
+        return UserResponse.model_validate(response.json())

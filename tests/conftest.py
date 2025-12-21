@@ -1,11 +1,14 @@
 """Shared pytest fixtures for JWT testing."""
 
+import logging
 import os
 import time
 
 import pytest
 from usso_jwt import sign
 from usso_jwt.algorithms import AbstractKey, EdDSAKey
+
+logging.basicConfig(level=logging.INFO, filename="test.log")
 
 
 @pytest.fixture(scope="session", autouse=True)

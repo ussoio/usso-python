@@ -6,6 +6,7 @@ from typing import Self
 import httpx
 from usso_jwt.schemas import JWT, JWTConfig
 
+from ..schemas import UserResponse
 from ..utils import agent
 from .base_client import BaseUssoClient
 
@@ -51,7 +52,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
 
         See class docstring for parameter details.
         """
-        httpx.AsyncClient.__init__(self, **kwargs)
+        httpx.AsyncClient.__init__(self, base_url=usso_base_url, **kwargs)
         BaseUssoClient.__init__(
             self,
             usso_base_url=usso_base_url,
@@ -218,3 +219,32 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         self.headers.update({"Authorization": f"Bearer {token}"})
         await self.get_session()
         return token
+
+    async def get_users(
+        self, params: dict | None = None
+    ) -> list[UserResponse]:
+        """
+        Get users from USSO API.
+
+        Returns:
+            list[UserResponse]: List of users.
+
+        """
+        response = await self.get("/api/sso/v1/users", params=params)
+        response.raise_for_status()
+        return [
+            UserResponse.model_validate(user)
+            for user in response.json().get("items", [])
+        ]
+
+    async def create_users(self, data: dict | None = None) -> UserResponse:
+        """
+        Create a user in USSO API.
+
+        Returns:
+            UserResponse: Created user.
+
+        """
+        response = await self.post("/api/sso/v1/users", json=data)
+        response.raise_for_status()
+        return UserResponse.model_validate(response.json())
