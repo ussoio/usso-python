@@ -180,10 +180,6 @@ class UssoClient(httpx.Client, BaseUssoClient):
 
         """
         response = self.get("/api/sso/v1/users", params=params)
-        if response.status_code != 200:
-            import logging
-
-            logging.error("Error getting users: %s", response.json())
         response.raise_for_status()
         return [
             UserResponse.model_validate(user)
@@ -201,3 +197,15 @@ class UssoClient(httpx.Client, BaseUssoClient):
         response = self.post("/api/sso/v1/users", json=data)
         response.raise_for_status()
         return UserResponse.model_validate(response.json())
+
+    def get_profile(self, user_id: str) -> dict:
+        """
+        Get user profile from USSO API.
+
+        Returns:
+            UserProfileResponse: User profile.
+
+        """
+        response = self.get(f"/api/sso/v1/profiles/{user_id}")
+        response.raise_for_status()
+        return response.json()
