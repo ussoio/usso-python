@@ -3,9 +3,12 @@
 import os
 import time
 
+import dotenv
 import pytest
 from usso_jwt import sign
 from usso_jwt.algorithms import AbstractKey, EdDSAKey
+
+dotenv.load_dotenv()
 
 
 @pytest.fixture(scope="session", autouse=True)

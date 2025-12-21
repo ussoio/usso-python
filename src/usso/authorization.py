@@ -1,9 +1,27 @@
 """Authorization and scope checking utilities."""
 
 import fnmatch
+from enum import IntEnum
 from urllib.parse import parse_qs
 
+
+class PrivilegeLevel(IntEnum):
+    """Privilege level enum."""
+
+    NONE = 0
+    READ = 10
+    CREATE = 20
+    UPDATE = 30
+    DELETE = 40
+    MANAGE = 50
+    ADMIN = 60
+    OWNER = 90
+    STAR = 90
+    SUPERADMIN = 100
+
+
 PRIVILEGE_LEVELS = {
+    "none": 0,
     "read": 10,
     "create": 20,
     "update": 30,
