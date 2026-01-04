@@ -112,7 +112,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
         if self.api_key:
             return self
 
-        if not self.access_token or self.access_token.is_temporally_valid():
+        if not (self.access_token and self.access_token.is_temporally_valid()):
             self._refresh()
         return self
 

@@ -159,7 +159,10 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         if hasattr(self, "api_key") and self.api_key:
             return self
 
-        if not self.access_token or self.access_token.is_temporally_valid():
+        if not (
+            self.access_token
+            and self.access_token.is_temporally_valid()
+        ):
             await self._refresh()
         return self
 
@@ -229,7 +232,6 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             ),
         )
         self.headers.update({"Authorization": f"Bearer {self.access_token}"})
-        await self.get_session()
         return token
 
     async def get_users(
