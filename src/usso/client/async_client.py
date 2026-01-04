@@ -187,7 +187,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         self,
         scopes: list[str],
         aud: str,
-        tenant_id: str,
+        tenant_id: str | None = None,
     ) -> str:
         """
         Generate and use an agent token for authentication.
@@ -210,6 +210,10 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         if not self.agent_id or not self.agent_private_key:
             raise ValueError("agent_id and private_key are required")
 
+        if not tenant_id:
+            agent_response = await self._get_agent()
+            tenant_id = agent_response.get("tenant_id")
+
         jwt = agent.generate_agent_jwt(
             scopes=scopes,
             aud=aud,
@@ -218,7 +222,13 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             private_key=self.agent_private_key,
         )
         token = await agent.get_agent_token_async(jwt)
-        self.headers.update({"Authorization": f"Bearer {token}"})
+        self.access_token = JWT(
+            token=token,
+            config=JWTConfig(
+                jwks_url=f"{self.usso_base_url}/.well-known/jwks.json"
+            ),
+        )
+        self.headers.update({"Authorization": f"Bearer {self.access_token}"})
         await self.get_session()
         return token
 
@@ -315,30 +325,16 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         """
 
         from usso import authorization
-        from usso.utils import agent
 
         if isinstance(scopes, str):
             scopes = [scopes]
 
         for scope in scopes:
             if not authorization.has_subset_scope(
-                subset_scope=scope, user_scopes=self._get_scopes()
+                subset_scope=scope, user_scopes=await self._get_scopes()
             ):
                 raise PermissionDenied(detail=f"Scope {scope} is not allowed")
-
         if not (self.agent_id and self.agent_private_key):
             return
 
-        agent_response = await self._get_agent()
-        self.tenant_id = agent_response.get("tenant_id")
-
-        jwt = agent.generate_agent_jwt(
-            scopes=scopes,
-            aud=aud,
-            tenant_id=self.tenant_id,
-            agent_id=self.agent_id,
-            private_key=self.agent_private_key,
-        )
-        token = await agent.get_agent_token_async(jwt)
-        self.headers["Authorization"] = f"Bearer {token}"
-        return token
+        return await self.use_agent_token(scopes=scopes, aud=aud)

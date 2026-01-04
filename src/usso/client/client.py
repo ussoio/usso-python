@@ -140,7 +140,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
         self,
         scopes: list[str],
         aud: str,
-        tenant_id: str,
+        tenant_id: str | None = None,
     ) -> str:
         """
         Generate and use an agent token for authentication.
@@ -163,6 +163,10 @@ class UssoClient(httpx.Client, BaseUssoClient):
         if not self.agent_id or not self.agent_private_key:
             raise ValueError("agent_id and agent_private_key are required")
 
+        if not tenant_id:
+            agent_response = self._get_agent()
+            tenant_id = agent_response.get("tenant_id")
+
         jwt = agent.generate_agent_jwt(
             scopes=scopes,
             aud=aud,
@@ -171,7 +175,13 @@ class UssoClient(httpx.Client, BaseUssoClient):
             private_key=self.agent_private_key,
         )
         token = agent.get_agent_token(jwt)
-        self.headers.update({"Authorization": f"Bearer {token}"})
+        self.access_token = JWT(
+            token=token,
+            config=JWTConfig(
+                jwks_url=f"{self.usso_base_url}/.well-known/jwks.json"
+            ),
+        )
+        self.headers.update({"Authorization": f"Bearer {self.access_token}"})
         return token
 
     def get_users(self, params: dict | None = None) -> list[UserResponse]:
@@ -264,7 +274,6 @@ class UssoClient(httpx.Client, BaseUssoClient):
         response.raise_for_status()
         return response.json()
 
-    @cachetools.func.ttl_cache(maxsize=128, ttl=60)
     def _get_refresh_token_scopes(self) -> list[str]:
         """Get the refresh token scopes."""
 
@@ -300,7 +309,6 @@ class UssoClient(httpx.Client, BaseUssoClient):
         """
 
         from usso import authorization
-        from usso.utils import agent
 
         if isinstance(scopes, str):
             scopes = [scopes]
@@ -314,17 +322,4 @@ class UssoClient(httpx.Client, BaseUssoClient):
         if not (self.agent_id and self.agent_private_key):
             return
 
-        agent_response = self._get_agent()
-        self.tenant_id = agent_response.get("tenant_id")
-
-        jwt = agent.generate_agent_jwt(
-            scopes=scopes,
-            aud=aud,
-            tenant_id=self.tenant_id,
-            agent_id=self.agent_id,
-            private_key=self.agent_private_key,
-        )
-
-        token = agent.get_agent_token(jwt)
-        self.headers["Authorization"] = f"Bearer {token}"
-        return token
+        return self.use_agent_token(scopes=scopes, aud=aud)
