@@ -23,7 +23,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         api_key: API key for authentication. Defaults to USSO_API_KEY env var.
         agent_id: Agent ID for agent-based authentication.
             Defaults to AGENT_ID env var.
-        private_key: Private key for agent-based authentication.
+        agent_private_key: Private key for agent-based authentication.
             Defaults to AGENT_PRIVATE_KEY env var.
         refresh_token: Refresh token for token-based authentication.
             Defaults to USSO_REFRESH_TOKEN env var.
@@ -39,7 +39,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         *,
         api_key: str | None = os.getenv("USSO_API_KEY"),
         agent_id: str | None = os.getenv("AGENT_ID"),
-        private_key: str | None = os.getenv("AGENT_PRIVATE_KEY"),
+        agent_private_key: str | None = os.getenv("AGENT_PRIVATE_KEY"),
         refresh_token: str | None = os.getenv("USSO_REFRESH_TOKEN"),
         usso_base_url: str | None = os.getenv(
             "USSO_BASE_URL", "https://sso.usso.io"
@@ -58,7 +58,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             usso_base_url=usso_base_url,
             api_key=api_key,
             agent_id=agent_id,
-            private_key=private_key,
+            agent_private_key=agent_private_key,
             refresh_token=refresh_token,
             client=client,
         )
@@ -205,7 +205,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             ValueError: If agent_id or private_key are not set.
 
         """
-        if not self.agent_id or not self.private_key:
+        if not self.agent_id or not self.agent_private_key:
             raise ValueError("agent_id and private_key are required")
 
         jwt = agent.generate_agent_jwt(
@@ -213,7 +213,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             aud=aud,
             tenant_id=tenant_id,
             agent_id=self.agent_id,
-            private_key=self.private_key,
+            private_key=self.agent_private_key,
         )
         token = await agent.get_agent_token_async(jwt)
         self.headers.update({"Authorization": f"Bearer {token}"})

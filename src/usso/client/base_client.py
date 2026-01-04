@@ -17,7 +17,7 @@ class BaseUssoClient:
         api_key: API key for authentication. Defaults to USSO_API_KEY env var.
         agent_id: Agent ID for agent-based authentication.
             Defaults to AGENT_ID env var.
-        private_key: Private key for agent-based authentication.
+        agent_private_key: Private key for agent-based authentication.
             Defaults to AGENT_PRIVATE_KEY env var.
         refresh_token: Refresh token for token-based authentication.
             Defaults to USSO_REFRESH_TOKEN env var.
@@ -36,7 +36,7 @@ class BaseUssoClient:
         *,
         api_key: str | None = None,
         agent_id: str | None = None,
-        private_key: str | None = None,
+        agent_private_key: str | None = None,
         refresh_token: str | None = None,
         usso_base_url: str | None = os.getenv(
             "USSO_BASE_URL", "https://sso.usso.io"
@@ -55,18 +55,18 @@ class BaseUssoClient:
         if not api_key and os.getenv("USSO_API_KEY"):
             api_key = os.getenv("USSO_API_KEY")
 
-        if not (api_key or refresh_token or (agent_id and private_key)):
+        if not (api_key or refresh_token or (agent_id and agent_private_key)):
             if os.getenv("USSO_API_KEY"):
                 api_key = os.getenv("USSO_API_KEY")
             elif os.getenv("USSO_REFRESH_TOKEN"):
                 refresh_token = os.getenv("USSO_REFRESH_TOKEN")
             elif os.getenv("AGENT_ID") and os.getenv("AGENT_PRIVATE_KEY"):
                 agent_id = os.getenv("AGENT_ID")
-                private_key = os.getenv("AGENT_PRIVATE_KEY")
+                agent_private_key = os.getenv("AGENT_PRIVATE_KEY")
             else:
                 raise ValueError(
                     "one of api_key, refresh_token, "
-                    "agent_id and private_key is required"
+                    "agent_id and agent_private_key is required"
                 )
 
         if api_key:
@@ -106,7 +106,7 @@ class BaseUssoClient:
         self.access_token = client.access_token
         self.api_key = client.api_key
         self.agent_id = client.agent_id
-        self.private_key = client.private_key
+        self.agent_private_key = client.agent_private_key
         self.headers = client.headers.copy()
 
     @property
