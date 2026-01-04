@@ -4,8 +4,10 @@ import os
 from typing import Self
 
 import httpx
+from aiocache import cached
 from usso_jwt.schemas import JWT, JWTConfig
 
+from ..exceptions import PermissionDenied
 from ..schemas import UserResponse
 from ..utils import agent
 from .base_client import BaseUssoClient
@@ -248,3 +250,95 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         response = await self.post("/api/sso/v1/users", json=data)
         response.raise_for_status()
         return UserResponse.model_validate(response.json())
+
+    @cached(ttl=60)
+    async def _get_api_key(self) -> dict:
+        """Get the API key scopes."""
+
+        response = await self.post(
+            f"{self.usso_base_url}/api/sso/v1/apikeys/verify",
+            json={"api_key": self.api_key},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    @cached(ttl=600)
+    async def _get_agent(self) -> dict:
+        """Get the agent token scopes."""
+
+        jwt = agent.generate_agent_jwt(
+            scopes=[],
+            aud="sso",
+            agent_id=self.agent_id,
+            private_key=self.agent_private_key,
+        )
+
+        response = await self.post(
+            f"{self.usso_base_url}/api/sso/v1/agents/scopes",
+            headers={"Authorization": f"Bearer {jwt}"},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def _get_refresh_token_scopes(self) -> list[str]:
+        """Get the refresh token scopes."""
+
+        await self._refresh()
+        return self.access_token.payload.get("scopes", [])
+
+    async def _get_scopes(self) -> list[str]:
+        """Get the scopes."""
+
+        if self.access_token and self.access_token.is_temporally_valid():
+            return self.access_token.payload.get("scopes", [])
+        if self.api_key:
+            api_key_response = await self._get_api_key()
+            return api_key_response.get("scopes", [])
+        if self.agent_id and self.agent_private_key:
+            agent_response = await self._get_agent()
+            return agent_response.get("scopes", [])
+        if self.refresh_token:
+            return await self._get_refresh_token_scopes()
+
+    async def _get_token(
+        self, scopes: str | list[str], aud: str = "accounting"
+    ) -> str:
+        """
+        Get authentication token for UFaaS service.
+
+        Args:
+            scopes: Permission scopes required
+            aud: Audience for the JWT
+
+        Returns:
+            JWT token string
+        """
+
+        from usso import authorization
+        from usso.utils import agent
+
+        if isinstance(scopes, str):
+            scopes = [scopes]
+
+        for scope in scopes:
+            if not authorization.has_subset_scope(
+                subset_scope=scope, user_scopes=self._get_scopes()
+            ):
+                raise PermissionDenied(detail=f"Scope {scope} is not allowed")
+
+        if not (self.agent_id and self.agent_private_key):
+            return
+
+        agent_response = await self._get_agent()
+        self.tenant_id = agent_response.get("tenant_id")
+
+        jwt = agent.generate_agent_jwt(
+            scopes=scopes,
+            aud=aud,
+            tenant_id=self.tenant_id,
+            agent_id=self.agent_id,
+            private_key=self.agent_private_key,
+        )
+        token = await agent.get_agent_token_async(jwt)
+        self.headers["Authorization"] = f"Bearer {token}"
+        return token

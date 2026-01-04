@@ -12,7 +12,7 @@ from usso_jwt.enums import Algorithm
 def generate_agent_jwt(
     scopes: list[str],
     aud: str,
-    tenant_id: str,
+    tenant_id: str | None = None,
     *,
     agent_id: str | None = None,
     private_key: str | None = None,
@@ -95,12 +95,14 @@ def get_agent_token(jwt: str) -> str:
         return response.json().get("tokens", {}).get("access")
 
 
-async def get_agent_token_async(jwt: str) -> str:
+async def get_agent_token_async(jwt: str, base_url: str | None = None) -> str:
     """
     Exchange an agent JWT for an access token (asynchronous).
 
     Args:
         jwt: The agent JWT token to exchange.
+        base_url: Base URL for the USSO API. Defaults to
+                  USSO_BASE_URL env var or "https://usso.uln.me".
 
     Returns:
         str: Access token obtained from the exchange.
@@ -109,7 +111,9 @@ async def get_agent_token_async(jwt: str) -> str:
         httpx.HTTPStatusError: If the token exchange request fails.
 
     """
-    usso_base_url = os.getenv("USSO_BASE_URL") or "https://usso.uln.me"
+    usso_base_url = (
+        base_url or os.getenv("USSO_BASE_URL") or "https://usso.uln.me"
+    )
 
     async with httpx.AsyncClient(
         base_url=f"{usso_base_url}/api/sso/v1"
