@@ -52,46 +52,42 @@ class BaseUssoClient:
             self.copy_attributes_from(client)
             return
 
-        if not api_key and os.getenv("USSO_API_KEY"):
-            api_key = os.getenv("USSO_API_KEY")
+        self.usso_base_url = usso_base_url.rstrip("/")
+        self.usso_refresh_url = f"{self.usso_base_url}/api/sso/v1/auth/refresh"
 
-        if not (api_key or refresh_token or (agent_id and agent_private_key)):
-            if os.getenv("USSO_API_KEY"):
-                api_key = os.getenv("USSO_API_KEY")
-            elif os.getenv("USSO_REFRESH_TOKEN"):
-                refresh_token = os.getenv("USSO_REFRESH_TOKEN")
-            elif os.getenv("AGENT_ID") and os.getenv("AGENT_PRIVATE_KEY"):
-                agent_id = os.getenv("AGENT_ID")
-                agent_private_key = os.getenv("AGENT_PRIVATE_KEY")
-            else:
-                raise ValueError(
-                    "one of api_key, refresh_token, "
-                    "agent_id and agent_private_key is required"
-                )
+        api_key = api_key or os.getenv("USSO_API_KEY")
+        refresh_token = refresh_token or os.getenv("USSO_REFRESH_TOKEN")
+        agent_id = agent_id or os.getenv("AGENT_ID")
+        agent_private_key = agent_private_key or os.getenv("AGENT_PRIVATE_KEY")
 
-        if api_key:
-            self.api_key = api_key
-            self.headers = self.headers or {}
-            self.headers.update({"x-api-key": api_key})
-        else:
-            self.api_key = None
+        if (
+            not api_key
+            and not refresh_token
+            and not (agent_id and agent_private_key)
+        ):
+            raise ValueError(
+                "one of api_key, refresh_token, "
+                "agent_id and agent_private_key is required"
+            )
 
-        if usso_base_url.endswith("/"):
-            usso_base_url = usso_base_url[:-1]
-
-        self.usso_base_url = usso_base_url
-        self.usso_refresh_url = f"{usso_base_url}/api/sso/v1/auth/refresh"
-
-        if refresh_token:
-            self._refresh_token = JWT(
+        self.api_key = api_key
+        self.agent_id = agent_id
+        self.agent_private_key = agent_private_key
+        self._refresh_token = (
+            JWT(
                 token=refresh_token,
                 config=JWTConfig(
                     jwks_url=f"{self.usso_base_url}/.well-known/jwks.json"
                 ),
             )
-
+            if refresh_token
+            else None
+        )
         self.access_token = None
-        self.headers = getattr(self, "headers", {})
+
+        if self.api_key:
+            self.headers = self.headers or {}
+            self.headers.update({"x-api-key": self.api_key})
 
     def copy_attributes_from(self, client: Self) -> None:
         """
