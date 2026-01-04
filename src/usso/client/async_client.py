@@ -64,7 +64,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             refresh_token=refresh_token,
             client=client,
         )
-        if refresh_token:
+        if self._refresh_token:
             self._refresh_sync()
 
     def _handle_refresh_response(self, response: httpx.Response) -> dict:

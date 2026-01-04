@@ -66,7 +66,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
             usso_base_url=usso_base_url,
             client=client,
         )
-        if not self.api_key:
+        if self._refresh_token:
             self._refresh()
 
     def _refresh(self) -> dict:
