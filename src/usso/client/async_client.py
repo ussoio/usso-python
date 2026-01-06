@@ -313,10 +313,10 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             return await self._get_refresh_token_scopes()
 
     async def _get_token(
-        self, scopes: str | list[str], aud: str = "accounting"
+        self, scopes: str | list[str], aud: str = "sso"
     ) -> str:
         """
-        Get authentication token for UFaaS service.
+        Get authentication token for USSO service.
 
         Args:
             scopes: Permission scopes required
