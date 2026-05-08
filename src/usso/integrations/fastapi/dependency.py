@@ -119,17 +119,27 @@ class USSOAuthentication(UssoAuth):
             USSOException: If authentication fails and raise_exception is True.
 
         """
+        token = self.get_request_jwt(request)
+        if token:
+            compact_kind = self.detect_compact_token_type(token)
+            if compact_kind == "jwt":
+                return self.user_data_from_token(
+                    token,
+                    raise_exception=self.raise_exception,
+                    expected_token_type=self.expected_token_type,
+                )
+            if compact_kind == "jwe":
+                return self.user_data_from_jwe(
+                    token, raise_exception=self.raise_exception
+                )
+                return None
+
+            # Non-JWT/JWE compact token: treat it as an API key.
+            return self.user_data_from_api_key(token)
+
         api_key = self.get_request_api_key(request)
         if api_key:
             return self.user_data_from_api_key(api_key)
-
-        token = self.get_request_jwt(request)
-        if token:
-            return self.user_data_from_token(
-                token,
-                raise_exception=self.raise_exception,
-                expected_token_type=self.expected_token_type,
-            )
 
         _handle_exception(
             "Unauthorized",
@@ -155,17 +165,26 @@ class USSOAuthentication(UssoAuth):
             USSOException: If authentication fails and raise_exception is True.
 
         """
+        token = self.get_request_jwt(request)
+        if token:
+            compact_kind = self.detect_compact_token_type(token)
+            if compact_kind == "jwt":
+                return self.user_data_from_token(
+                    token,
+                    raise_exception=self.raise_exception,
+                    expected_token_type=self.expected_token_type,
+                )
+            if compact_kind == "jwe":
+                return await self.user_data_from_jwe_async(
+                    token, raise_exception=self.raise_exception
+                )
+                return None
+
+            return await self.user_data_from_api_key_async(token)
+
         api_key = self.get_request_api_key(request)
         if api_key:
             return await self.user_data_from_api_key_async(api_key)
-
-        token = self.get_request_jwt(request)
-        if token:
-            return self.user_data_from_token(
-                token,
-                raise_exception=self.raise_exception,
-                expected_token_type=self.expected_token_type,
-            )
 
         _handle_exception(
             "Unauthorized",
@@ -189,17 +208,26 @@ class USSOAuthentication(UssoAuth):
             USSOException: If authentication fails and raise_exception is True.
 
         """
+        token = self.get_request_jwt(websocket)
+        if token:
+            compact_kind = self.detect_compact_token_type(token)
+            if compact_kind == "jwt":
+                return self.user_data_from_token(
+                    token,
+                    raise_exception=self.raise_exception,
+                    expected_token_type=self.expected_token_type,
+                )
+            if compact_kind == "jwe":
+                return self.user_data_from_jwe(
+                    token, raise_exception=self.raise_exception
+                )
+                return None
+
+            return self.user_data_from_api_key(token)
+
         api_key = self.get_request_api_key(websocket)
         if api_key:
             return self.user_data_from_api_key(api_key)
-
-        token = self.get_request_jwt(websocket)
-        if token:
-            return self.user_data_from_token(
-                token,
-                raise_exception=self.raise_exception,
-                expected_token_type=self.expected_token_type,
-            )
         _handle_exception(
             "Unauthorized",
             message="No token provided",

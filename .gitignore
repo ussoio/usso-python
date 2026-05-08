@@ -16,3 +16,5 @@ __pycache__/
 htmlcov/
 .pytest_cache/
 .coverage*
+.ruff_cache
+.DS_Store

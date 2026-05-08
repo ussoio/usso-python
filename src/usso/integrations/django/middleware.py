@@ -10,7 +10,8 @@ from django.http import JsonResponse
 from django.http.request import HttpRequest
 from django.utils.deprecation import MiddlewareMixin
 
-from ... import AuthConfig, UserData, UssoAuth, USSOException
+from ... import AuthConfig, UserData, USSOException
+from .dependency import USSOAuthentication
 
 logger = logging.getLogger("usso")
 
@@ -80,7 +81,7 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         """
         Authenticate user from request without raising exceptions.
 
-        Tries API key first, then JWT token.
+        Tries Authorization (JWT/JWE-aware) first, then API key header.
         Returns None if authentication fails.
 
         Args:
@@ -90,19 +91,21 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
             UserData | None: User data if authenticated, None otherwise.
 
         """
-        usso_auth = UssoAuth(jwt_config=self.jwt_config)
-        api_key = self.jwt_config.get_api_key(request)
-        if api_key:
-            return usso_auth.user_data_from_api_key(api_key)
-
-        token = self.get_request_jwt(request)
-        if not token:
-            return None
-        return usso_auth.user_data_from_token(token, raise_exception=False)
+        usso_auth = USSOAuthentication(
+            jwt_config=self.jwt_config,
+            raise_exception=False,
+        )
+        return usso_auth.usso_access_security(request)
 
     def jwt_access_security(self, request: HttpRequest) -> UserData | None:
         """
-        Authenticate user from request (alias for jwt_access_security_none).
+        Authenticate user from request (raising exceptions on error).
+
+        Uses JWT/JWE detection similar to FastAPI integration:
+        - If Authorization looks like a JWT, verify it as JWT.
+        - If it looks like a JWE, call the JWE placeholder.
+        - Otherwise, treat the Authorization credential as an API key.
+        - If Authorization is missing, fall back to API key header.
 
         Args:
             request: The Django HTTP request object.
@@ -111,15 +114,11 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
             UserData | None: User data if authenticated, None otherwise.
 
         """
-        usso_auth = UssoAuth(jwt_config=self.jwt_config)
-        api_key = self.jwt_config.get_api_key(request)
-        if api_key:
-            return usso_auth.user_data_from_api_key(api_key)
-
-        token = self.get_request_jwt(request)
-        if not token:
-            return None
-        return usso_auth.user_data_from_token(token, raise_exception=False)
+        usso_auth = USSOAuthentication(
+            jwt_config=self.jwt_config,
+            raise_exception=True,
+        )
+        return usso_auth.usso_access_security(request)
 
     def get_or_create_user(self, user_data: UserData) -> User:
         """
