@@ -53,6 +53,8 @@ class USSOException(Exception):  # noqa: N818
                 self.message = {
                     "en": detail,
                 }
+        else:
+            self.message = message
         self.detail = detail or str(self.message.get("en"))
         self.data = kwargs
         super().__init__(detail)
