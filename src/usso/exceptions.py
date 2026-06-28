@@ -54,6 +54,8 @@ class USSOException(Exception):  # noqa: N818
                     "en": detail,
                 }
         else:
+            if isinstance(message, str):
+                message = {"en": message}
             self.message = message
         self.detail = detail or str(self.message.get("en"))
         self.data = kwargs
