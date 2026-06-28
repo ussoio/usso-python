@@ -27,7 +27,7 @@ def usso_exception_handler(
         status_code=exc.status_code,
         content={
             "message": exc.message,
-            "error": exc.error,
+            "error_code": exc.error_code,
             "detail": exc.detail,
             **exc.data,
         },
