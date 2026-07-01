@@ -21,7 +21,9 @@ def _handle_exception(error_type: str, **kwargs: dict) -> None:
     """Handle API key related exceptions."""
     if kwargs.get("raise_exception", True):
         raise USSOException(
-            status_code=401, error=error_type, message=kwargs.get("message")
+            status_code=401,
+            error_code=error_type,
+            message=kwargs.get("message"),
         )
     logger.error(kwargs.get("message") or error_type)
 
