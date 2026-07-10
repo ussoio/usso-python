@@ -1,7 +1,9 @@
 """USSO authentication client."""
 
+import asyncio
 import base64
 import binascii
+import inspect
 import json
 import logging
 import os
@@ -12,7 +14,7 @@ import usso_jwt.exceptions
 import usso_jwt.schemas
 
 from .api_key import fetch_api_key_data, fetch_api_key_data_async
-from .config import AuthConfig, AvailableJwtConfigs
+from .config import APIHeaderConfig, AuthConfig, AvailableJwtConfigs
 from .exceptions import _handle_exception
 from .user import UserData
 
@@ -180,6 +182,36 @@ class UssoAuth:
             **kwargs,
         )
 
+    def _resolve_api_key_header(self) -> APIHeaderConfig | None:
+        """Return the first configured API key header settings."""
+        for jwt_config in self.jwt_configs:
+            if jwt_config.api_key_header is not None:
+                return jwt_config.api_key_header
+        return None
+
+    @staticmethod
+    def _run_sync_api_key_verifier(
+        header: APIHeaderConfig, api_key: str
+    ) -> UserData:
+        """Verify an API key using a configured in-process verifier."""
+        if header.api_key_verifier is not None:
+            return header.api_key_verifier(api_key)
+
+        if header.api_key_verifier_async is not None:
+            result = header.api_key_verifier_async(api_key)
+            if not inspect.isawaitable(result):
+                return result
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                return asyncio.run(result)
+            raise RuntimeError(
+                "Async api_key_verifier_async cannot be used from a running "
+                "event loop; call user_data_from_api_key_async instead."
+            )
+
+        raise RuntimeError("No in-process API key verifier configured")
+
     def user_data_from_api_key(self, api_key: str) -> UserData:
         """
         Get user data from an API key.
@@ -194,10 +226,17 @@ class UssoAuth:
             USSOException: If the API key is invalid
 
         """
-        return fetch_api_key_data(
-            self.jwt_configs[0].api_key_header.verify_endpoint,
-            api_key,
-        )
+        header = self._resolve_api_key_header()
+        if header is None:
+            _handle_exception(
+                "Unauthorized",
+                message="API key authentication is not configured",
+            )
+        if header.api_key_verifier is not None or (
+            header.api_key_verifier_async is not None
+        ):
+            return self._run_sync_api_key_verifier(header, api_key)
+        return fetch_api_key_data(header.verify_endpoint, api_key)
 
     async def user_data_from_api_key_async(self, api_key: str) -> UserData:
         """
@@ -213,10 +252,17 @@ class UssoAuth:
             USSOException: If the API key is invalid
 
         """
-        return await fetch_api_key_data_async(
-            self.jwt_configs[0].api_key_header.verify_endpoint,
-            api_key,
-        )
+        header = self._resolve_api_key_header()
+        if header is None:
+            _handle_exception(
+                "Unauthorized",
+                message="API key authentication is not configured",
+            )
+        if header.api_key_verifier_async is not None:
+            return await header.api_key_verifier_async(api_key)
+        if header.api_key_verifier is not None:
+            return header.api_key_verifier(api_key)
+        return await fetch_api_key_data_async(header.verify_endpoint, api_key)
 
     def user_data_from_jwe(
         self,

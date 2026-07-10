@@ -2,10 +2,11 @@
 
 import json
 import os
-from typing import Any, Union
+from collections.abc import Awaitable, Callable
+from typing import Union
 
 import usso_jwt.config
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from .user import UserData
 from .utils.string_utils import get_authorization_scheme_param
@@ -52,7 +53,7 @@ class HeaderConfig(BaseModel):
         if not self.header_name:
             return None
 
-        headers: dict[str, Any] = getattr(request, "headers", {})
+        headers: dict[str, object] = getattr(request, "headers", {})
         header_auth = headers.get(self.header_name)
         if self.header_name == "Authorization":
             scheme, credentials = get_authorization_scheme_param(header_auth)
@@ -100,21 +101,38 @@ class APIHeaderConfig(HeaderConfig):
     Configuration for API key authentication.
 
     Extends HeaderConfig with API key-specific settings including
-    the verification endpoint.
+    the verification endpoint or an optional in-process verifier.
 
     Attributes:
         header_name: Name of the HTTP header containing the API key.
             Defaults to "x-api-key".
         cookie_name: Not used for API keys (set to None).
-        verify_endpoint: URL endpoint for verifying API keys.
+        verify_endpoint: URL endpoint for verifying API keys remotely.
             Defaults to USSO_BASE_URL/api/sso/v1/apikeys/verify.
+        api_key_verifier: Optional sync callable that verifies an API key
+            locally and returns UserData. When set, HTTP verification is
+            skipped.
+        api_key_verifier_async: Optional async callable with the same
+            contract as api_key_verifier. Preferred for async frameworks.
 
     """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     header_name: str | None = "x-api-key"
     cookie_name: str | None = None
     verify_endpoint: str = Field(
         default_factory=lambda: f"{os.getenv('USSO_BASE_URL') or 'https://sso.usso.io'}/api/sso/v1/apikeys/verify"
+    )
+    api_key_verifier: Callable[[str], UserData] | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    api_key_verifier_async: Callable[[str], Awaitable[UserData]] | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
     )
 
 
