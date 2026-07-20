@@ -245,6 +245,7 @@ def owner_authorization(
     self_action: str = "owner",
     action: str = "read",
     owner_id: str | None = None,
+    workspace_id: str | None = None,
 ) -> bool:
     """
     Check if user has owner-level authorization for a resource.
@@ -259,12 +260,13 @@ def owner_authorization(
         action: The requested action privilege level. Defaults to "read".
         owner_id: The owner ID to check for workspace model or other ownership
                   models.
+        workspace_id: Workspace id for workspace-scoped self-access checks.
 
     Returns:
         bool: True if user has owner authorization, False otherwise.
 
     """
-    uid = owner_id or user_id
+    uid = owner_id or user_id or workspace_id
 
     if (
         uid
@@ -272,6 +274,7 @@ def owner_authorization(
         and (
             requested_filter.get("owner_id") == uid
             or requested_filter.get("user_id") == uid
+            or requested_filter.get("workspace_id") == uid
         )
     ):
         user_level = PRIVILEGE_LEVELS.get(self_action or "read", 10)
