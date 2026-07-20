@@ -108,7 +108,7 @@ class BaseUssoClient:
     @property
     def refresh_token(self) -> JWT:
         """
-        Get the refresh token, validating it if present.
+        The refresh token, validating it if present.
 
         If the refresh token is invalid or expired, it is cleared.
 

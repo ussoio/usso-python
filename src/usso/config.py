@@ -122,17 +122,21 @@ class APIHeaderConfig(HeaderConfig):
     header_name: str | None = "x-api-key"
     cookie_name: str | None = None
     verify_endpoint: str = Field(
-        default_factory=lambda: f"{os.getenv('USSO_BASE_URL') or 'https://sso.usso.io'}/api/sso/v1/apikeys/verify"
+        default_factory=lambda: (
+            f"{os.getenv('USSO_BASE_URL') or 'https://sso.usso.io'}/api/sso/v1/apikeys/verify"
+        )
     )
     api_key_verifier: Callable[[str], UserData] | None = Field(
         default=None,
         exclude=True,
         repr=False,
     )
-    api_key_verifier_async: Callable[[str], Awaitable[UserData]] | None = Field(
-        default=None,
-        exclude=True,
-        repr=False,
+    api_key_verifier_async: Callable[[str], Awaitable[UserData]] | None = (
+        Field(
+            default=None,
+            exclude=True,
+            repr=False,
+        )
     )
 
 

@@ -120,7 +120,7 @@ class UserData(BaseModel):
     @property
     def user_id(self) -> str:
         """
-        Get the user ID from claims or subject.
+        User ID from claims or subject.
 
         Returns:
             str: User ID from claims or subject claim,
@@ -134,7 +134,7 @@ class UserData(BaseModel):
     @property
     def uid(self) -> str:
         """
-        Get the user ID (alias for user_id).
+        User ID (alias for user_id).
 
         Returns:
             str: User ID from claims or subject claim.
@@ -145,7 +145,7 @@ class UserData(BaseModel):
     @property
     def user_name(self) -> str:
         """
-        Get the user's name from claims.
+        User's name from claims.
 
         Returns:
             str: User name from claims, empty string if not found.
@@ -158,7 +158,7 @@ class UserData(BaseModel):
     @property
     def email(self) -> str:
         """
-        Get the user's email from claims.
+        User's email from claims.
 
         Returns:
             str: Email address from claims, empty string if not found.
@@ -171,7 +171,7 @@ class UserData(BaseModel):
     @property
     def phone(self) -> str:
         """
-        Get the user's phone number from claims.
+        User's phone number from claims.
 
         Returns:
             str: Phone number from claims, empty string if not found.

@@ -27,7 +27,7 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
     @property
     def jwt_config(self) -> AuthConfig:
         """
-        Get JWT configuration from Django settings.
+        JWT configuration from Django settings.
 
         Returns:
             AuthConfig: Authentication configuration from
