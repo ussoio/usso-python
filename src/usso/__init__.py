@@ -4,6 +4,11 @@ USSO - Universal Single Sign-On Client.
 A plug-and-play client for integrating universal single sign-on (SSO)
 with Python frameworks, enabling secure and seamless authentication
 across microservices.
+
+Submodules (import explicitly, not re-exported here):
+- ``usso.scope_catalog`` — register microservice scopes with SSO
+- ``usso.authorization`` — scope checks and parsing
+- ``usso.integrations.fastapi`` — FastAPI auth dependencies
 """
 
 from .auth import UssoAuth
@@ -15,19 +20,12 @@ from .user import UserData
 __version__ = "0.31.7"
 
 __all__ = [
-    # API header config
     "APIHeaderConfig",
-    # Async client
     "AsyncUssoClient",
-    # Configuration
     "AuthConfig",
     "HeaderConfig",
-    # Exceptions
     "USSOException",
-    # Models
     "UserData",
-    # Main authentication class
     "UssoAuth",
-    # Main client
     "UssoClient",
 ]
