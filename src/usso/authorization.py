@@ -262,10 +262,15 @@ def owner_authorization(
         owner_id: The owner ID to check for workspace model or other ownership
                   models.
         workspace_id: Workspace id for workspace-scoped self-access checks.
+                      Checked independently of owner_id/user_id -- passing
+                      both simultaneously (e.g. "this is user U, currently
+                      acting in workspace W") is supported, and each is
+                      matched against its own id, not conflated into one.
         workspace_action: Privilege level to grant when the match came
-                          *only* through workspace_id (not owner_id/
-                          user_id) -- e.g. cap workspace membership to
-                          "read" so being in a workspace grants shared
+                          through workspace_id (whether or not a distinct
+                          owner_id/user_id was also given and simply
+                          didn't match) -- e.g. cap workspace membership
+                          to "read" so being in a workspace grants shared
                           visibility without automatic edit/delete rights
                           over resources created by other members. When
                           None (default), behavior is unchanged from
@@ -277,26 +282,39 @@ def owner_authorization(
         bool: True if user has owner authorization, False otherwise.
 
     """
-    uid = owner_id or user_id or workspace_id
+    owner_uid = owner_id or user_id
 
-    if uid and requested_filter:
-        owner_match = (
-            requested_filter.get("owner_id") == uid
-            or requested_filter.get("user_id") == uid
+    owner_match = bool(
+        owner_uid
+        and requested_filter
+        and (
+            requested_filter.get("owner_id") == owner_uid
+            or requested_filter.get("user_id") == owner_uid
+            or requested_filter.get("workspace_id") == owner_uid
         )
-        workspace_match = requested_filter.get("workspace_id") == uid
+    )
 
-        if owner_match or workspace_match:
-            granted_action = self_action
-            workspace_only = workspace_match and not owner_match
-            if workspace_only and workspace_action is not None:
-                granted_action = workspace_action
+    if owner_match:
+        granted_action = self_action
+    elif (
+        workspace_id
+        and requested_filter
+        and (
+            requested_filter.get("owner_id") == workspace_id
+            or requested_filter.get("user_id") == workspace_id
+            or requested_filter.get("workspace_id") == workspace_id
+        )
+    ):
+        granted_action = (
+            workspace_action if workspace_action is not None else self_action
+        )
+    else:
+        return False
 
-            user_level = PRIVILEGE_LEVELS.get(granted_action or "read", 10)
-            req_level = PRIVILEGE_LEVELS.get(action or "read", 10)
+    user_level = PRIVILEGE_LEVELS.get(granted_action or "read", 10)
+    req_level = PRIVILEGE_LEVELS.get(action or "read", 10)
 
-            return user_level >= req_level
-    return False
+    return user_level >= req_level
 
 
 def is_authorized(
