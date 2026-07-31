@@ -34,6 +34,82 @@ def test_owner_authorization(
     )
 
 
+def test_owner_authorization_workspace_id_defaults_to_self_action() -> None:
+    """
+    Test that omitting workspace_action leaves prior behavior unchanged.
+
+    The match is granted at self_action level, same as an owner_id/
+    user_id match.
+    """
+    assert owner_authorization(
+        {"workspace_id": "w1"},
+        self_action="owner",
+        action="delete",
+        workspace_id="w1",
+    )
+
+
+@pytest.mark.parametrize(
+    "requested_filter, workspace_id, action, workspace_action, expected",
+    [
+        # workspace_action caps a workspace-only match to read.
+        ({"workspace_id": "w1"}, "w1", "read", "read", True),
+        ({"workspace_id": "w1"}, "w1", "update", "read", False),
+        # Raising workspace_action explicitly allows more.
+        ({"workspace_id": "w1"}, "w1", "update", "update", True),
+        # Different workspace -> no grant.
+        ({"workspace_id": "w2"}, "w1", "read", "read", False),
+        # No workspace_id on the caller -> no grant.
+        ({"workspace_id": "w1"}, None, "read", "read", False),
+        # No workspace_id on the resource -> no grant.
+        ({}, "w1", "read", "read", False),
+    ],
+)
+def test_owner_authorization_workspace_action_cap(
+    requested_filter: dict[str, str],
+    workspace_id: str | None,
+    action: str,
+    workspace_action: str,
+    expected: bool,
+) -> None:
+    """
+    Test that workspace_action caps a workspace-only match.
+
+    When explicitly given, it caps the privilege level granted via a
+    workspace-only match (no owner_id/user_id match) -- e.g. a workspace
+    member gets read access to the workspace's shared resources without
+    automatic edit/delete rights over resources created by other members.
+    """
+    assert (
+        owner_authorization(
+            requested_filter,
+            action=action,
+            workspace_id=workspace_id,
+            workspace_action=workspace_action,
+        )
+        == expected
+    )
+
+
+def test_owner_match_ignores_workspace_action_cap() -> None:
+    """
+    Test that an owner match is not capped by workspace_action.
+
+    When the match came through owner_id/user_id (not just workspace_id),
+    workspace_action's cap doesn't apply -- the owner still gets full
+    self_action-level rights over their own resource, even if it's also
+    tagged with a workspace_id.
+    """
+    assert owner_authorization(
+        {"user_id": "u1", "workspace_id": "w1"},
+        user_id="u1",
+        self_action="owner",
+        action="delete",
+        workspace_id="w1",
+        workspace_action="read",
+    )
+
+
 @pytest.mark.parametrize(
     "user_scope,requested_path,requested_action,requested_filter,strict,expected",
     [

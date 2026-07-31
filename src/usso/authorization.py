@@ -246,6 +246,7 @@ def owner_authorization(
     action: str = "read",
     owner_id: str | None = None,
     workspace_id: str | None = None,
+    workspace_action: str | None = None,
 ) -> bool:
     """
     Check if user has owner-level authorization for a resource.
@@ -261,6 +262,16 @@ def owner_authorization(
         owner_id: The owner ID to check for workspace model or other ownership
                   models.
         workspace_id: Workspace id for workspace-scoped self-access checks.
+        workspace_action: Privilege level to grant when the match came
+                          *only* through workspace_id (not owner_id/
+                          user_id) -- e.g. cap workspace membership to
+                          "read" so being in a workspace grants shared
+                          visibility without automatic edit/delete rights
+                          over resources created by other members. When
+                          None (default), behavior is unchanged from
+                          before this parameter existed: workspace_id
+                          matches are granted at self_action level, same
+                          as owner_id/user_id matches.
 
     Returns:
         bool: True if user has owner authorization, False otherwise.
@@ -268,19 +279,23 @@ def owner_authorization(
     """
     uid = owner_id or user_id or workspace_id
 
-    if (
-        uid
-        and requested_filter
-        and (
+    if uid and requested_filter:
+        owner_match = (
             requested_filter.get("owner_id") == uid
             or requested_filter.get("user_id") == uid
-            or requested_filter.get("workspace_id") == uid
         )
-    ):
-        user_level = PRIVILEGE_LEVELS.get(self_action or "read", 10)
-        req_level = PRIVILEGE_LEVELS.get(action or "read", 10)
+        workspace_match = requested_filter.get("workspace_id") == uid
 
-        return user_level >= req_level
+        if owner_match or workspace_match:
+            granted_action = self_action
+            workspace_only = workspace_match and not owner_match
+            if workspace_only and workspace_action is not None:
+                granted_action = workspace_action
+
+            user_level = PRIVILEGE_LEVELS.get(granted_action or "read", 10)
+            req_level = PRIVILEGE_LEVELS.get(action or "read", 10)
+
+            return user_level >= req_level
     return False
 
 
