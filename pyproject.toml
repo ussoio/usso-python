@@ -139,7 +139,6 @@ ignore = [
   "magic-value-comparison",
   "compare-to-empty-string",
 ]
-"server/db.py" = ["TRY"]
 
 [tool.ruff.format]
 quote-style = "double"
