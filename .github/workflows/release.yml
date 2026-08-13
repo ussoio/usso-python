@@ -1,4 +1,4 @@
-# Publish usso-jwt to PyPI when a semver tag (e.g. 0.2.15) is pushed.
+# Publish usso to PyPI when a semver tag (e.g. 0.31.11) is pushed.
 # The tagged commit must already have matching version in pyproject.toml.
 
 name: Release
@@ -79,9 +79,6 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/usso-jwt
     permissions:
       id-token: write
     steps:
@@ -93,3 +90,7 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
