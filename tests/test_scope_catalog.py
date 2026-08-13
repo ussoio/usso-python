@@ -79,9 +79,7 @@ async def test_register_scope_catalog_skips_without_credentials(
 
 
 @pytest.mark.asyncio
-async def test_register_scope_catalog_puts_payload(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+async def test_register_scope_catalog_puts_payload() -> None:
     """Successful registration exchanges credentials then PUTs scopes."""
     token_response = mock.MagicMock()
     token_response.raise_for_status = mock.MagicMock()

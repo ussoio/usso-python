@@ -9,18 +9,18 @@ import pytest
 import pytest_asyncio
 from fastapi import Depends, FastAPI, WebSocket
 from starlette.testclient import TestClient
-from usso_jwt.algorithms import AbstractKey
+from usso_jwt.algorithms import EdDSAKey
 
-from src.usso import UserData
-from src.usso.exceptions import USSOException
-from src.usso.integrations.fastapi import (
+from usso import UserData
+from usso.exceptions import USSOException
+from usso.integrations.fastapi import (
     USSOAuthentication,
     usso_exception_handler,
 )
 
 
 @pytest.fixture(scope="session")
-def app(test_key: AbstractKey) -> FastAPI:
+def app(test_key: EdDSAKey) -> FastAPI:
     """Fixture to provide a FastAPI app."""
     import fastapi
 

@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.usso.authorization import (
+from usso.authorization import (
     check_access,
     has_subset_scope,
     is_authorized,
@@ -13,7 +13,7 @@ from src.usso.authorization import (
 
 
 @pytest.mark.parametrize(
-    "requested_filter, user_id, self_action, action, expected",
+    ("requested_filter", "user_id", "self_action", "action", "expected"),
     [
         ({"user_id": "123"}, "123", "owner", "read", True),
         ({}, "123", "owner", "create", False),
@@ -50,7 +50,13 @@ def test_owner_authorization_workspace_id_defaults_to_self_action() -> None:
 
 
 @pytest.mark.parametrize(
-    "requested_filter, workspace_id, action, workspace_action, expected",
+    (
+        "requested_filter",
+        "workspace_id",
+        "action",
+        "workspace_action",
+        "expected",
+    ),
     [
         # workspace_action caps a workspace-only match to read.
         ({"workspace_id": "w1"}, "w1", "read", "read", True),
@@ -111,7 +117,14 @@ def test_owner_match_ignores_workspace_action_cap() -> None:
 
 
 @pytest.mark.parametrize(
-    "user_scope,requested_path,requested_action,requested_filter,strict,expected",
+    (
+        "user_scope",
+        "requested_path",
+        "requested_action",
+        "requested_filter",
+        "strict",
+        "expected",
+    ),
     [
         (
             "read:media/files",
@@ -150,7 +163,7 @@ def test_is_authorized(
 
 
 @pytest.mark.parametrize(
-    "user_path, requested_path, expected",
+    ("user_path", "requested_path", "expected"),
     [
         ("files", "files", True),
         ("file-manager/files", "files", True),

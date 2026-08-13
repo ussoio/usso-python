@@ -2,30 +2,20 @@
 
 import logging
 import os
+from typing import NoReturn
 
 import cachetools.func
 import httpx
 
-from .exceptions import USSOException
+from .exceptions import USSOError, _handle_exception
 from .user import UserData
-
-try:
-    import aiocache
-except ImportError:
-    aiocache = None
 
 logger = logging.getLogger("usso")
 
 
-def _handle_exception(error_type: str, **kwargs: dict) -> None:
-    """Handle API key related exceptions."""
-    if kwargs.get("raise_exception", True):
-        raise USSOException(
-            status_code=401,
-            error_code=error_type,
-            message=kwargs.get("message"),
-        )
-    logger.error(kwargs.get("message") or error_type)
+def _fail_api_key(message: str) -> NoReturn:
+    """Raise an API-key authentication error."""
+    raise USSOError(status_code=401, error_code="error", message=message)
 
 
 @cachetools.func.ttl_cache(maxsize=128, ttl=60)
@@ -54,6 +44,7 @@ def fetch_api_key_data(api_key_verify_url: str, api_key: str) -> UserData:
         return UserData(**response.json())
     except Exception as e:
         _handle_exception("error", message=str(e))
+        _fail_api_key(str(e))
 
 
 async def fetch_api_key_data_async(
@@ -83,3 +74,4 @@ async def fetch_api_key_data_async(
             return UserData(**response.json())
     except Exception as e:
         _handle_exception("error", message=str(e))
+        _fail_api_key(str(e))

@@ -1,6 +1,7 @@
 """USSO exception classes."""
 
 import logging
+from typing import NoReturn
 
 logger = logging.getLogger("usso")
 
@@ -14,8 +15,8 @@ error_messages = {
 }
 
 
-class USSOException(Exception):  # noqa: N818
-    """USSOException is a base exception for all USSO exceptions."""
+class USSOError(Exception):
+    """Base exception for all USSO errors."""
 
     status_code: int = 401
     error_code: str = "unauthorized"
@@ -27,8 +28,8 @@ class USSOException(Exception):  # noqa: N818
         status_code: int,
         error_code: str,
         detail: str | None = None,
-        message: dict | None = None,
-        **kwargs: dict,
+        message: dict[str, str] | str | None = None,
+        **kwargs: object,
     ) -> None:
         """
         Initialize USSO exception.
@@ -45,7 +46,7 @@ class USSOException(Exception):  # noqa: N818
         self.error_code = error_code
         if message is None:
             if self.message_en and self.message_fa:
-                self.message = {
+                self.message: dict[str, str | None] = {
                     "en": self.message_en,
                     "fa": self.message_fa,
                 }
@@ -53,16 +54,20 @@ class USSOException(Exception):  # noqa: N818
                 self.message = {
                     "en": detail,
                 }
+        elif isinstance(message, str):
+            self.message = {"en": message}
         else:
-            if isinstance(message, str):
-                message = {"en": message}
-            self.message = message
+            self.message = dict(message)
         self.detail = detail or str(self.message.get("en"))
         self.data = kwargs
         super().__init__(detail)
 
 
-class PermissionDenied(USSOException):
+# Backward-compatible alias (N818 only flags the class definition name).
+USSOException = USSOError
+
+
+class PermissionDeniedError(USSOError):
     """
     Exception raised when a user lacks required permissions.
 
@@ -86,8 +91,8 @@ class PermissionDenied(USSOException):
         self,
         error_code: str = "permission_denied",
         detail: str | None = None,
-        message: dict | None = None,
-        **kwargs: dict,
+        message: dict[str, str] | str | None = None,
+        **kwargs: object,
     ) -> None:
         """
         Initialize permission denied exception.
@@ -103,11 +108,15 @@ class PermissionDenied(USSOException):
         )
 
 
-def _handle_exception(error_type: str, **kwargs: dict) -> None:
+# Backward-compatible alias.
+PermissionDenied = PermissionDeniedError
+
+
+def _handle_exception(error_type: str, **kwargs: object) -> None:
     """
     Handle authentication-related exceptions.
 
-    Either raises a USSOException or logs the error based on
+    Either raises a USSOError or logs the error based on
     the raise_exception flag.
 
     Args:
@@ -117,10 +126,32 @@ def _handle_exception(error_type: str, **kwargs: dict) -> None:
             - message: Error message to include.
 
     """
+    message = kwargs.get("message")
+    msg: str | dict[str, str] | None
+    if message is None or isinstance(message, str):
+        msg = message
+    elif isinstance(message, dict):
+        msg = {str(key): str(value) for key, value in message.items()}
+    else:
+        msg = str(message)
+
     if kwargs.get("raise_exception", True):
-        raise USSOException(
+        raise USSOError(
             status_code=401,
             error_code=error_type,
-            message=kwargs.get("message"),
+            message=msg,
         )
-    logger.error(kwargs.get("message") or error_type)
+    logger.error(msg or error_type)
+
+
+def _raise_auth_error(
+    error_type: str,
+    *,
+    message: str | None = None,
+) -> NoReturn:
+    """Raise an authentication error (helps type narrowing)."""
+    raise USSOError(
+        status_code=401,
+        error_code=error_type,
+        message=message,
+    )

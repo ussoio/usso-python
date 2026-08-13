@@ -57,10 +57,11 @@ config = JWTConfig(
     issuer="https://sso.example.com",
     audience="api.example.com",
     type=Algorithm.EdDSA,
-    header=JWTHeaderConfig(type="Authorization")
+    header=JWTHeaderConfig(type="Authorization"),
 )
 
 authenticator = get_authenticator(config)
+
 
 @app.get("/me")
 def get_me(user: UserData = Depends(authenticator)):

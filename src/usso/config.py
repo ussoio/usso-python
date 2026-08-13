@@ -3,7 +3,7 @@
 import json
 import os
 from collections.abc import Awaitable, Callable
-from typing import Union
+from typing import Any, Union, cast
 
 import usso_jwt.config
 from pydantic import BaseModel, ConfigDict, Field
@@ -56,11 +56,14 @@ class HeaderConfig(BaseModel):
         headers: dict[str, object] = getattr(request, "headers", {})
         header_auth = headers.get(self.header_name)
         if self.header_name == "Authorization":
-            scheme, credentials = get_authorization_scheme_param(header_auth)
+            scheme, credentials = get_authorization_scheme_param(
+                str(header_auth) if header_auth is not None else None
+            )
             if scheme.lower() == "bearer":
                 return credentials
+            return None
 
-        return header_auth
+        return str(header_auth) if header_auth is not None else None
 
     def _get_key_cookie(self, request: object) -> str | None:
         """
@@ -76,11 +79,10 @@ class HeaderConfig(BaseModel):
         if not self.cookie_name:
             return None
 
-        getattr(request, "headers", {})
         cookies: dict[str, str] = getattr(request, "cookies", {})
         return cookies.get(self.cookie_name)
 
-    def get_key(self, request: object) -> str | None:  # type: ignore
+    def get_key(self, request: object) -> str | None:
         """
         Extract token from request (header or cookie).
 
@@ -123,7 +125,8 @@ class APIHeaderConfig(HeaderConfig):
     cookie_name: str | None = None
     verify_endpoint: str = Field(
         default_factory=lambda: (
-            f"{os.getenv('USSO_BASE_URL') or 'https://sso.usso.io'}/api/sso/v1/apikeys/verify"
+            f"{os.getenv('USSO_BASE_URL') or 'https://sso.usso.io'}"
+            "/api/sso/v1/apikeys/verify"
         )
     )
     api_key_verifier: Callable[[str], UserData] | None = Field(
@@ -143,9 +146,7 @@ class APIHeaderConfig(HeaderConfig):
 class AuthConfig(usso_jwt.config.JWTConfig):
     """Configuration for JWT processing."""
 
-    api_key_header: APIHeaderConfig | None = APIHeaderConfig(
-        type="CustomHeader", name="x-api-key"
-    )
+    api_key_header: APIHeaderConfig | None = APIHeaderConfig()
     jwt_header: HeaderConfig | None = HeaderConfig()
     static_api_keys: list[str] | None = None
 
@@ -161,13 +162,16 @@ class AuthConfig(usso_jwt.config.JWTConfig):
 
         """
         if not data:
-            if os.getenv("JWT_CONFIG"):
-                data = json.loads(os.getenv("JWT_CONFIG"))
+            jwt_config_env = os.getenv("JWT_CONFIG")
+            if jwt_config_env:
+                loaded = json.loads(jwt_config_env)
+                if isinstance(loaded, dict):
+                    data = loaded
             else:
                 base_url = os.getenv("USSO_BASE_URL", "https://sso.usso.io")
                 data = {"jwks_url": f"{base_url}/.well-known/jwks.json"}
 
-        super().__init__(**data)
+        super().__init__(**cast("Any", data))
 
     def get_api_key(self, request: object) -> str | None:
         """
@@ -200,7 +204,7 @@ class AuthConfig(usso_jwt.config.JWTConfig):
         return None
 
     def verify_token(
-        self, token: str, *, raise_exception: bool = True, **kwargs: dict
+        self, token: str, *, raise_exception: bool = True, **kwargs: object
     ) -> bool:
         """
         Verify a JWT token.
@@ -226,7 +230,7 @@ class AuthConfig(usso_jwt.config.JWTConfig):
                 token=token,
                 config=self,
                 payload_class=UserData,
-            ).verify(**kwargs)
+            ).verify(**cast_kwargs(kwargs))
         except jwt_exceptions.JWTError:
             if raise_exception:
                 raise
@@ -287,6 +291,11 @@ class AuthConfig(usso_jwt.config.JWTConfig):
         if isinstance(jwt_config, list):
             return [cls._parse_config(config) for config in jwt_config]
         raise ValueError("Invalid jwt_config format")
+
+
+def cast_kwargs(kwargs: dict[str, object]) -> dict[str, Any]:
+    """Narrow kwargs for JWT.verify without silencing type checks."""
+    return dict(kwargs)
 
 
 AvailableJwtConfigs = (

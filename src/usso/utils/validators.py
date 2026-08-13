@@ -1,11 +1,20 @@
 """Validation utilities for identifiers and credentials."""
 
+from __future__ import annotations
+
 import logging
 import re
 import string
 import unicodedata
-from collections.abc import Iterable
-from enum import Enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from enum import Enum
+
+    from email_validator import ValidatedEmail
+
+logger = logging.getLogger(__name__)
 
 username_regex = (
     r"^(?=.{3,30}$)[A-Za-z0-9_](?:[A-Za-z0-9]|[._-](?=[A-Za-z0-9]))*$"
@@ -28,19 +37,19 @@ def convert_to_english_digits(input_str: str) -> str:
         str: String with all digits converted to ASCII (0-9).
 
     """
-    result = []
+    result: list[str] = []
     for char in input_str:
         if char.isdigit():
             # Convert any unicode digit to its corresponding ASCII digit
-            result.append(unicodedata.digit(char))
+            result.append(str(unicodedata.digit(char)))
         else:
             result.append(char)
-    return "".join(map(str, result))
+    return "".join(result)
 
 
 def validate_phone(
     number: str, country_code: str | None = None
-) -> tuple[bool, str, str]:
+) -> tuple[bool, str | None, str | None]:
     """
     Validate a phone number.
 
@@ -49,7 +58,8 @@ def validate_phone(
         country_code: Optional country code for validation.
 
     Returns:
-        tuple[bool, str, str]: (is_valid, error_message, canonical_number).
+        tuple[bool, str | None, str | None]:
+            (is_valid, error_message, canonical_number).
             error_message is None if valid.
 
     """
@@ -72,7 +82,7 @@ def validate_phone(
     return True, None, f"{parsed.country_code}{parsed.national_number}"
 
 
-def validate_telegram_id(inp: str) -> tuple[bool, str, str]:
+def validate_telegram_id(inp: str) -> tuple[bool, str | None, str | None]:
     """
     Validate a Telegram user ID.
 
@@ -80,7 +90,8 @@ def validate_telegram_id(inp: str) -> tuple[bool, str, str]:
         inp: String to validate as Telegram ID.
 
     Returns:
-        tuple[bool, str, str]: (is_valid, error_message, canonical_id).
+        tuple[bool, str | None, str | None]:
+            (is_valid, error_message, canonical_id).
             error_message is None if valid.
 
     """
@@ -89,7 +100,7 @@ def validate_telegram_id(inp: str) -> tuple[bool, str, str]:
     return False, "Invalid Telegram ID", None
 
 
-def validate_email(email: str) -> tuple[bool, str, str]:
+def validate_email(email: str) -> tuple[bool, str | None, str | None]:
     """
     Validate an email address.
 
@@ -97,36 +108,44 @@ def validate_email(email: str) -> tuple[bool, str, str]:
         email: Email address string to validate.
 
     Returns:
-        tuple[bool, str, str]: (is_valid, error_message, canonical_email).
+        tuple[bool, str | None, str | None]:
+            (is_valid, error_message, canonical_email).
             error_message is None if valid.
 
     """
-    import dns.resolver
     import email_validator
 
     try:
-        # First try with DNS validation but catch only
-        # timeout/connection errors
-        try:
-            resolver = email_validator.caching_resolver(
-                timeout=5
-            )  # Reduced timeout
-            mail_address = email_validator.validate_email(
-                email, dns_resolver=resolver, check_deliverability=True
-            )
-        except dns.resolver.NoResolverConfiguration:
-            logging.warning("no dns")
-            mail_address = email_validator.validate_email(
-                email, check_deliverability=False
-            )
+        mail_address = _validate_email_address(email)
     except email_validator.EmailNotValidError:
         return False, "Email is invalid", None
 
     if mail_address.domain != "gmail.com":
         return True, None, mail_address.normalized
 
-    email_user = mail_address.ascii_local_part.split("+")[0].replace(".", "")
+    local = mail_address.ascii_local_part or ""
+    email_user = local.split("+")[0].replace(".", "")
     return True, None, f"{email_user}@gmail.com"
+
+
+def _validate_email_address(email: str) -> ValidatedEmail:
+    """Validate email, falling back when DNS resolver is unavailable."""
+    import dns.resolver
+    import email_validator
+
+    try:
+        resolver = email_validator.caching_resolver(timeout=5)
+        return email_validator.validate_email(
+            email,
+            dns_resolver=resolver,
+            check_deliverability=True,
+        )
+    except dns.resolver.NoResolverConfiguration:
+        logger.warning("no dns")
+        return email_validator.validate_email(
+            email,
+            check_deliverability=False,
+        )
 
 
 separators = "._-"
@@ -245,7 +264,7 @@ def validate_username(
     username: str,
     reserved: Iterable[str] = reserved,
     bad_words: Iterable[str] = banned_words,
-) -> tuple[bool, str, str]:
+) -> tuple[bool, str | None, str | None]:
     """
     Validate a username.
 
@@ -295,7 +314,9 @@ def validate_username(
     return True, None, uname
 
 
-def determine_identifier_type(payload: dict) -> tuple[Enum, str]:
+def determine_identifier_type(  # ruff: ignore[too-many-return-statements]
+    payload: dict[str, object],
+) -> tuple[Enum | None, str | None]:
     """
     Determine the identifier type and value from a payload.
 
@@ -306,20 +327,26 @@ def determine_identifier_type(payload: dict) -> tuple[Enum, str]:
         payload: Dictionary containing identifier information.
 
     Returns:
-        tuple[Enum, str]: Tuple of (AuthIdentifier enum, canonical_value).
+        tuple[Enum | None, str | None]: Tuple of
+            (AuthIdentifier enum, canonical_value).
             Returns (None, None) if no valid identifier is found.
 
     """
-    from ..enums import AuthIdentifier
+    from usso.enums import AuthIdentifier
 
-    if payload.get("phone"):
-        return AuthIdentifier.PHONE, payload.get("phone")
-    elif payload.get("email"):
-        return AuthIdentifier.EMAIL, payload.get("email")
-    elif payload.get("username"):
-        return AuthIdentifier.USERNAME, payload.get("username")
+    phone = payload.get("phone")
+    if isinstance(phone, str) and phone:
+        return AuthIdentifier.PHONE, phone
+    email = payload.get("email")
+    if isinstance(email, str) and email:
+        return AuthIdentifier.EMAIL, email
+    username = payload.get("username")
+    if isinstance(username, str) and username:
+        return AuthIdentifier.USERNAME, username
 
     sub = payload.get("sub")
+    if not isinstance(sub, str) or not sub:
+        return None, None
     valid, _, canonical_sub = validate_email(sub)
     if valid:
         return AuthIdentifier.EMAIL, canonical_sub

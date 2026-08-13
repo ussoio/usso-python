@@ -2,35 +2,33 @@
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
-
-from ...exceptions import USSOException
+from usso.exceptions import USSOException
 
 
 def usso_exception_handler(
-    request: Request, exc: USSOException
+    request: Request,
+    exc: Exception,
 ) -> JSONResponse:
     """
     FastAPI exception handler for USSO exceptions.
 
     Converts USSOException instances into JSON responses with
     appropriate status codes and error details.
-
-    Args:
-        request: The FastAPI request object.
-        exc: The USSOException instance to handle.
-
-    Returns:
-        JSONResponse: JSON response with error details.
-
     """
-    if request.headers.get("accept-language"):
-        locales = request.headers.get("accept-language").split(",")
-        msg = {}
+    if not isinstance(exc, USSOException):
+        raise TypeError(
+            "usso_exception_handler expects USSOException"
+        ) from None
+
+    accept = request.headers.get("accept-language")
+    if accept:
+        locales = accept.split(",")
+        msg: dict[str, object] = {}
         for locale in locales:
             lang = locale.split("-")[0]
             if lang in exc.message:
                 msg[lang] = exc.message.get(lang)
-        message = msg
+        message: dict[str, object] | object = msg
     else:
         message = exc.message
 

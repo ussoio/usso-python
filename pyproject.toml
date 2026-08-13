@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso"
-version = "0.31.9"
+version = "0.31.10"
 description = "A plug-and-play client for integrating universal single sign-on (SSO) with Python frameworks, enabling secure and seamless authentication across microservices."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE.txt"]
 keywords = ["usso", "sso", "authentication", "security", "fastapi", "django"]
@@ -72,40 +72,82 @@ preview = true
 
 [tool.ruff.lint]
 select = [
-  "F",     # Pyflakes: critical errors and unused code
-  "E",
-  "W",     # PEP8: formatting issues
-  "I",     # isort: import sorting
-  "UP",    # pyupgrade: modern syntax
-  "B",     # bugbear: potential bugs
-  "T",     # debugger / print statement checks
-  "C",     # complexity: complexity checking
-  "A",     # avoids shadowing Python built-ins
-  "ASYNC", # async/await syntax
-  "SIM",   # simplify: cleaner code
-  "PERF",  # performance optimizations
-  "TRY",   # better try/excepts
-  "N",     # naming conventions
-  "S",     # security checks
-  "ANN",   # type annotation checks
-  "T20",   # no print()
-  "C4",    # comprehension: better loops
-  "COM",   # enforces trailing commas where needed.
-  "EXE",   # executable: executable checking
-  "ISC",   # implicit string concatenation
-  "G",     # misuse of logging string interpolation
-  "D",     # docstrings: docstring checking
-  "ERA", # remove commented code
-  "RUF", # ruff-specific improvements
+  "F",      # Pyflakes: undefined names, unused imports, invalid code patterns
+  "E",      # pycodestyle errors: PEP 8 style errors
+  "W",      # pycodestyle warnings: PEP 8 style warnings
+
+  "I",      # isort: import ordering and grouping
+  "UP",     # pyupgrade: modernize Python syntax
+  "B",      # flake8-bugbear: likely bugs and problematic patterns
+  "SIM",    # flake8-simplify: simplify unnecessarily complex code
+  "PERF",   # Perflint: detect avoidable performance problems
+
+  "A",      # flake8-builtins: prevent shadowing Python built-ins
+  "ARG",    # flake8-unused-arguments: detect unused function arguments
+  "ASYNC",  # flake8-async: detect common async/await problems
+  "C4",     # flake8-comprehensions: improve list/set/dict comprehensions
+  "C90",    # McCabe: enforce cyclomatic complexity limits
+  "D",      # pydocstyle: enforce docstring presence and conventions
+  # "DOC",    # pydocstyle: enforce docstring presence and conventions
+  "DTZ",    # flake8-datetimez: require timezone-aware datetime usage
+  "ERA",    # eradicate: detect commented-out code
+  "EXE",    # flake8-executable: validate executable files and shebangs
+  "G",      # flake8-logging-format: validate logging format usage
+  "ISC",    # flake8-implicit-str-concat: detect implicit string concatenation
+  "LOG",    # flake8-logging: detect problematic logging patterns
+  "N",      # pep8-naming: enforce naming conventions
+  "PIE",    # flake8-pie: miscellaneous code quality improvements
+  "PTH",    # flake8-use-pathlib: prefer pathlib over os.path
+  "RET",    # flake8-return: detect unnecessary or inconsistent return patterns
+  "RUF",    # Ruff-specific: additional Ruff correctness and quality rules
+  "S",      # flake8-bandit: detect common security issues
+  "T20",    # flake8-print: prevent print() and pprint() in production code
+  "TID",    # flake8-tidy-imports: enforce clean and controlled imports
+  "TRY",    # tryceratops: improve exception and try/except handling
+
+  "ANN",    # flake8-annotations: require type annotations
+  "TC",     # flake8-type-checking: manage imports used only for typing
+
+  "PT",     # flake8-pytest-style: enforce consistent pytest patterns
+
+  "PLC",    # Pylint convention
+  "PLE",    # Pylint error
+  "PLW",    # Pylint warning
+  "PLR",    # Pylint refactor
 ]
-ignore = ["TRY003", "COM812", "B008", "D202", "D203", "D209", "D212", "D413"]
-per-file-ignores = { "tests/*" = ["G004", "S101"], "server/db.py" = ["TRY"] }
+ignore = [
+  "raise-vanilla-args",
+  "missing-trailing-comma",
+  "function-call-in-default-argument",
+  "blank-line-after-function",
+  "incorrect-blank-line-before-class",
+  "new-line-after-last-paragraph",
+  "multi-line-summary-first-line",
+  "missing-blank-line-after-last-section",
+  # PL: library/framework false positives
+  "import-outside-top-level",  # import-outside-top-level (lazy/circular/optional deps)
+  "import-private-name",  # import-private-name (internal package helpers)
+  "no-self-use",  # no-self-use (framework interface methods)
+  "too-many-arguments",  # too-many-arguments (library API surfaces)
+  "too-many-positional-arguments",  # too-many-positional-arguments
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+  "logging-f-string",
+  "assert",
+  "magic-value-comparison",
+  "compare-to-empty-string",
+]
+"server/db.py" = ["TRY"]
 
 [tool.ruff.format]
 quote-style = "double"
 
 [tool.mypy]
 python_version = "3.13"
+mypy_path = "src"
+explicit_package_bases = true
 ignore_missing_imports = true
 check_untyped_defs = false
 disallow_untyped_defs = false

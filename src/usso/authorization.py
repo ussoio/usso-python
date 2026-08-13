@@ -91,10 +91,9 @@ def _normalize_path(path: list[str] | str) -> list[str]:
     """
     if isinstance(path, str):
         return path.split("/")
-    elif isinstance(path, list):
+    if isinstance(path, list):
         return path
-    else:
-        raise TypeError(f"Invalid path type: {type(path)}")
+    raise TypeError(f"Invalid path type: {type(path)}")
 
 
 def _match_path_parts(
@@ -320,7 +319,7 @@ def owner_authorization(
 def is_authorized(
     user_scope: str,
     requested_path: str,
-    requested_action: str = "read",
+    requested_action: str | None = "read",
     requested_filter: dict[str, str] | None = None,
     *,
     strict: bool = False,
@@ -477,7 +476,7 @@ def get_common_scopes(
     not_permitted_scopes = [
         scope
         for scope in scopes_a
-        if not has_subset_scope(subset_scope=scope, super_scope=scopes_b)
+        if not has_subset_scope(subset_scope=scope, user_scopes=scopes_b)
     ]
     if not not_permitted_scopes:
         return scopes_a
@@ -486,11 +485,10 @@ def get_common_scopes(
         scope
         for scope in scopes_b
         if has_subset_scope(
-            subset_scope=scope, super_scope=not_permitted_scopes
+            subset_scope=scope, user_scopes=not_permitted_scopes
         )
     ]
 
-    scopes_a = list(
+    return list(
         set(scopes_a + new_permitted_scopes) - set(not_permitted_scopes)
     )
-    return scopes_a

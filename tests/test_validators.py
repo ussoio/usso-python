@@ -1,7 +1,7 @@
 """Test validators."""
 
-from src.usso.enums import AuthIdentifier
-from src.usso.utils.validators import (
+from usso.enums import AuthIdentifier
+from usso.utils.validators import (
     convert_to_english_digits,
     determine_identifier_type,
     validate_email,
@@ -91,9 +91,9 @@ class TestDetermineIdentifierType:
         assert value == "user@usso.io"
 
     def test_determine_identifier_invalid(self) -> None:
-        """Test determine_identifier_type function with email."""
+        """Test determine_identifier_type with an unrecognizable subject."""
         identifier_type, value = determine_identifier_type({
-            "sub": "user@example.com"
+            "sub": "!!!not-valid!!!"
         })
         assert identifier_type is None
         assert value is None
@@ -139,7 +139,7 @@ class TestValidators:
 
     def test_invalid_email(self) -> None:
         """Test invalid email."""
-        is_valid, error, canonical = validate_email("user@example.ir")
+        is_valid, error, canonical = validate_email("not-an-email")
         assert is_valid is False
         assert error is not None
         assert canonical is None

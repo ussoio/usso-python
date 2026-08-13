@@ -8,8 +8,8 @@ from django.contrib.auth.backends import BaseBackend
 from django.contrib.auth.models import User
 from django.db.utils import IntegrityError
 from django.http.request import HttpRequest
+from usso import UserData
 
-from ... import UserData
 from .dependency import USSOAuthentication
 
 logger = logging.getLogger("usso")
@@ -26,7 +26,7 @@ class USSOAuthenticationBackend(BaseBackend):
     def authenticate(
         self,
         request: HttpRequest | None,
-        **kwargs: object,
+        **_kwargs: object,
     ) -> User | None:
         """Authenticate a request and return a Django user."""
         if request is None:
@@ -46,10 +46,7 @@ class USSOAuthenticationBackend(BaseBackend):
 
     def get_user(self, user_id: int) -> User | None:
         """Return Django user by ID for auth backend contract."""
-        try:
-            return User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return None
+        return User.objects.filter(pk=user_id).first()
 
     def get_or_create_user(
         self,

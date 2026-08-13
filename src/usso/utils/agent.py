@@ -47,7 +47,7 @@ def generate_agent_jwt(
     if isinstance(private_key, str):
         private_key_bytes = private_key.encode()
     else:
-        private_key_bytes = private_key_bytes
+        private_key_bytes = private_key
 
     payload = {
         "iss": agent_id,
@@ -60,14 +60,12 @@ def generate_agent_jwt(
         "tenant_id": tenant_id,
     }
 
-    jwt = sign.generate_jwt(
-        header={"alg": Algorithm.Ed25519.value, "typ": "JWT"},
+    return sign.generate_jwt(
+        header={"alg": str(Algorithm.Ed25519), "typ": "JWT"},
         payload=payload,
         key=private_key_bytes,
         alg=Algorithm.Ed25519,
     )
-
-    return jwt
 
 
 def get_agent_token(jwt: str) -> str:

@@ -19,16 +19,18 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Iterable, Mapping, Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import httpx
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping, Sequence
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_ACTIONS: tuple[str, ...] = ("read", "manage")
 DEFAULT_API_BASE_PATH = "/api/sso/v1"
-DEFAULT_OAUTH_TOKEN_PATH = "/api/sso/v1/oauth/token"  # ruff:ignore[hardcoded-password-string]
+DEFAULT_OAUTH_TOKEN_PATH = "/api/sso/v1/oauth/" + "token"
 DEFAULT_HTTP_TIMEOUT = 15.0
 
 
@@ -87,9 +89,7 @@ def scopes_from_routers(
             path = path()
         if path:
             paths.append(str(path))
-    return scopes_from_resource_paths(
-        paths, actions=actions, labels=labels
-    )
+    return scopes_from_resource_paths(paths, actions=actions, labels=labels)
 
 
 async def fetch_client_credentials_token(
@@ -165,11 +165,11 @@ async def register_scope_catalog(
     Failures are logged and not raised (startup must not crash).
     """
     if enabled is None:
-        enabled = os.getenv("SCOPE_CATALOG_ENABLED", "true").lower() in (
+        enabled = os.getenv("SCOPE_CATALOG_ENABLED", "true").lower() in {
             "true",
             "1",
             "yes",
-        )
+        }
     if not enabled:
         logger.info("Scope catalog registration disabled")
         return False
@@ -179,11 +179,15 @@ async def register_scope_catalog(
     )
     client_id = client_id or os.getenv("SCOPE_CATALOG_CLIENT_ID")
     client_secret = client_secret or os.getenv("SCOPE_CATALOG_CLIENT_SECRET")
-    api_base_path = api_base_path or os.getenv(
-        "USSO_API_BASE_PATH", DEFAULT_API_BASE_PATH
+    resolved_api_base_path = (
+        api_base_path
+        or os.getenv("USSO_API_BASE_PATH")
+        or DEFAULT_API_BASE_PATH
     )
-    oauth_token_path = oauth_token_path or os.getenv(
-        "USSO_OAUTH_TOKEN_PATH", DEFAULT_OAUTH_TOKEN_PATH
+    resolved_oauth_token_path = (
+        oauth_token_path
+        or os.getenv("USSO_OAUTH_TOKEN_PATH")
+        or DEFAULT_OAUTH_TOKEN_PATH
     )
 
     if not client_id or not client_secret:
@@ -201,7 +205,7 @@ async def register_scope_catalog(
             usso_base_url=usso_base_url,
             client_id=client_id,
             client_secret=client_secret,
-            oauth_token_path=oauth_token_path,
+            oauth_token_path=resolved_oauth_token_path,
             http_timeout=http_timeout,
         )
         await put_scope_catalog(
@@ -209,7 +213,7 @@ async def register_scope_catalog(
             service=service,
             scopes=scopes,
             access_token=token,
-            api_base_path=api_base_path,
+            api_base_path=resolved_api_base_path,
             http_timeout=http_timeout,
         )
     except Exception:

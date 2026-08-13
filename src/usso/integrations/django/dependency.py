@@ -5,11 +5,14 @@ from collections.abc import Callable
 from functools import wraps
 
 from django.http.request import HttpRequest
-
-from ...auth import UssoAuth
-from ...config import AvailableJwtConfigs
-from ...exceptions import PermissionDenied, _handle_exception
-from ...user import UserData
+from usso.auth import UssoAuth
+from usso.config import AvailableJwtConfigs
+from usso.exceptions import (
+    PermissionDenied,
+    _handle_exception,
+    _raise_auth_error,
+)
+from usso.user import TokenType, UserData
 
 logger = logging.getLogger("usso")
 
@@ -30,7 +33,7 @@ class USSOAuthentication(UssoAuth):
         jwt_config: AvailableJwtConfigs | None = None,
         *,
         raise_exception: bool = True,
-        expected_token_type: str = "access",  # noqa: S107
+        expected_token_type: str | TokenType | None = None,
         from_usso_base_url: str | None = None,
     ) -> None:
         """Initialize Django authentication helper."""
@@ -39,7 +42,11 @@ class USSOAuthentication(UssoAuth):
             from_usso_base_url=from_usso_base_url,
         )
         self.raise_exception = raise_exception
-        self.expected_token_type = expected_token_type
+        self.expected_token_type: str | TokenType = (
+            expected_token_type
+            if expected_token_type is not None
+            else TokenType.ACCESS
+        )
 
     def __call__(self, request: HttpRequest) -> UserData | None:
         """Make this helper callable for manual use in views."""
@@ -83,10 +90,12 @@ class USSOAuthentication(UssoAuth):
         if api_key:
             return self.user_data_from_api_key(api_key)
 
+        if self.raise_exception:
+            _raise_auth_error("Unauthorized", message="No token provided")
         _handle_exception(
             "Unauthorized",
             message="No token provided",
-            raise_exception=self.raise_exception,
+            raise_exception=False,
         )
         return None
 
@@ -108,15 +117,14 @@ class USSOAuthentication(UssoAuth):
                 *args: object,
                 **kwargs: object,
             ) -> object:
-                from ... import authorization
+                from usso import authorization
 
                 user = self.usso_access_security(request)
                 if user is None:
-                    _handle_exception(
-                        "Unauthorized",
-                        message="No token provided",
-                        raise_exception=self.raise_exception,
-                    )
+                    if self.raise_exception:
+                        _raise_auth_error(
+                            "Unauthorized", message="No token provided"
+                        )
                     return None
 
                 user_scopes = user.scopes or []
@@ -132,7 +140,8 @@ class USSOAuthentication(UssoAuth):
                             f"to {action} {resource_path}"
                         )
                     )
-                request.usso_user = user
+                for attr, value in {"usso_user": user}.items():
+                    setattr(request, attr, value)
                 return view_func(request, *args, **kwargs)
 
             return _wrapped_view

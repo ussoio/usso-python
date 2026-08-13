@@ -9,8 +9,8 @@ from django.db.utils import IntegrityError
 from django.http import JsonResponse
 from django.http.request import HttpRequest
 from django.utils.deprecation import MiddlewareMixin
+from usso import AuthConfig, UserData, USSOException
 
-from ... import AuthConfig, UserData, USSOException
 from .dependency import USSOAuthentication
 
 logger = logging.getLogger("usso")
@@ -26,71 +26,49 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
 
     @property
     def jwt_config(self) -> AuthConfig:
-        """
-        JWT configuration from Django settings.
-
-        Returns:
-            AuthConfig: Authentication configuration from
-                settings.USSO_JWT_CONFIG.
-
-        """
+        """JWT configuration from Django settings."""
         return settings.USSO_JWT_CONFIG
 
-    def process_request(self, request: HttpRequest) -> None:
+    def process_request(self, request: HttpRequest) -> JsonResponse | None:
         """
         Process incoming request to authenticate user.
 
         Authenticates the user via JWT token or API key and attaches
         the user to the request object. Skips authentication if user
         is already authenticated.
-
-        Args:
-            request: The Django HTTP request object.
-
         """
         try:
-            if hasattr(request, "user") and request.user.is_authenticated:
-                return
-
-            user_data = self.jwt_access_security_none(request)
-            if user_data:
-                user = self.get_or_create_user(user_data)
-                request.user = user
-                request._dont_enforce_csrf_checks = True
+            self._attach_usso_user(request)
         except USSOException as e:
-            # Handle any errors raised by USSO authentication
             return JsonResponse({"error": str(e)}, status=401)
+        return None
+
+    def _attach_usso_user(self, request: HttpRequest) -> None:
+        """Authenticate and attach Django user when credentials are present."""
+        existing_user = getattr(request, "user", None)
+        if existing_user is not None and getattr(
+            existing_user, "is_authenticated", False
+        ):
+            return
+
+        user_data = self.jwt_access_security_none(request)
+        if user_data:
+            user = self.get_or_create_user(user_data)
+            for attr, value in {
+                "user": user,
+                "_dont_enforce_csrf_checks": True,
+            }.items():
+                setattr(request, attr, value)
 
     def get_request_jwt(self, request: HttpRequest) -> str | None:
-        """
-        Extract JWT token from request.
-
-        Args:
-            request: The Django HTTP request object.
-
-        Returns:
-            str | None: JWT token if found, None otherwise.
-
-        """
+        """Extract JWT token from request."""
         return self.jwt_config.get_jwt(request)
 
     def jwt_access_security_none(
         self,
         request: HttpRequest,
     ) -> UserData | None:
-        """
-        Authenticate user from request without raising exceptions.
-
-        Tries Authorization (JWT/JWE-aware) first, then API key header.
-        Returns None if authentication fails.
-
-        Args:
-            request: The Django HTTP request object.
-
-        Returns:
-            UserData | None: User data if authenticated, None otherwise.
-
-        """
+        """Authenticate user from request without raising exceptions."""
         usso_auth = USSOAuthentication(
             jwt_config=self.jwt_config,
             raise_exception=False,
@@ -98,22 +76,7 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         return usso_auth.usso_access_security(request)
 
     def jwt_access_security(self, request: HttpRequest) -> UserData | None:
-        """
-        Authenticate user from request (raising exceptions on error).
-
-        Uses JWT/JWE detection similar to FastAPI integration:
-        - If Authorization looks like a JWT, verify it as JWT.
-        - If it looks like a JWE, call the JWE placeholder.
-        - Otherwise, treat the Authorization credential as an API key.
-        - If Authorization is missing, fall back to API key header.
-
-        Args:
-            request: The Django HTTP request object.
-
-        Returns:
-            UserData | None: User data if authenticated, None otherwise.
-
-        """
+        """Authenticate user from request (raising exceptions on error)."""
         usso_auth = USSOAuthentication(
             jwt_config=self.jwt_config,
             raise_exception=True,
@@ -121,28 +84,15 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         return usso_auth.usso_access_security(request)
 
     def get_or_create_user(self, user_data: UserData) -> User:
-        """
-        Check if a user exists by phone.
-
-        If not, create a new user and return it.
-
-        Args:
-            user_data: User data from authentication.
-
-        Returns:
-            User: Django User instance.
-
-        """
+        """Check if a user exists by phone; create if missing."""
         if self.jwt_config.jwks_url:
             domain = urlparse(self.jwt_config.jwks_url).netloc
         else:
             domain = "example.com"
         phone = user_data.phone
         email = user_data.email or f"{user_data.user_id}@{domain}"
-        # Fallback email
 
         try:
-            # Try to get the user by phone
             user, created = User.objects.get_or_create(
                 username=phone,
                 defaults={
