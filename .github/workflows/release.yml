@@ -1,4 +1,3 @@
-# Publish usso to PyPI when a semver tag (e.g. 0.31.11) is pushed.
 # The tagged commit must already have matching version in pyproject.toml.
 
 name: Release
