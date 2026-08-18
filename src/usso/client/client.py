@@ -27,7 +27,7 @@ def _verify_api_key(usso_base_url: str, api_key: str) -> dict[str, Any]:
 
 @cachetools.func.ttl_cache(maxsize=128, ttl=600)
 def _fetch_agent_scopes(
-    usso_base_url: str, agent_id: str, agent_private_key: str
+    usso_base_url: str, agent_id: str | None, agent_private_key: str
 ) -> dict[str, Any]:
     """Return cached agent scopes."""
     jwt = agent.generate_agent_jwt(
@@ -143,8 +143,8 @@ class UssoClient(httpx.Client, BaseUssoClient):
         tenant_id: str | None = None,
     ) -> str:
         """Generate and use an agent token for authentication."""
-        if not self.agent_id or not self.agent_private_key:
-            raise ValueError("agent_id and agent_private_key are required")
+        if not self.agent_private_key:
+            raise ValueError("private_key is required")
 
         if not tenant_id:
             agent_response = self._get_agent()
@@ -202,7 +202,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
 
     def _get_agent(self) -> dict[str, Any]:
         """Get the agent token scopes."""
-        if not self.agent_id or not self.agent_private_key:
+        if not self.agent_private_key:
             return {}
         return _fetch_agent_scopes(
             self.usso_base_url, self.agent_id, self.agent_private_key
@@ -220,7 +220,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
         if self.api_key:
             api_key_response = self._get_api_key()
             return list(api_key_response.get("scopes", []) or [])
-        if self.agent_id and self.agent_private_key:
+        if self.agent_private_key:
             agent_response = self._get_agent()
             return list(agent_response.get("scopes", []) or [])
         if self.refresh_token:
@@ -242,7 +242,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
             ):
                 raise PermissionDenied(detail=f"Scope {scope} is not allowed")
 
-        if not (self.agent_id and self.agent_private_key):
+        if not self.agent_private_key:
             return None
 
         return self.use_agent_token(scopes=scopes, aud=aud)

@@ -230,7 +230,7 @@ def test_client_session_request_and_scope_branches() -> None:
 
     with pytest.raises(
         ValueError,
-        match="agent_id and agent_private_key",
+        match="private_key is required",
     ):
         client.use_agent_token(scopes=[], aud="sso")
 
@@ -382,7 +382,7 @@ async def test_async_client_scope_branches() -> None:
     ):
         assert await client._get_refresh_token_scopes() == ["z"]
 
-    with pytest.raises(ValueError, match="agent_id and private_key"):
+    with pytest.raises(ValueError, match="private_key is required"):
         await client.use_agent_token(scopes=[], aud="sso")
 
     # get_session without api_key refreshes

@@ -43,6 +43,25 @@ def test_base_client_requires_credentials(
         BaseUssoClient(usso_base_url="https://sso.example")
 
 
+def test_base_client_agent_private_key_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Agent auth can be configured with the private key alone."""
+    for key in (
+        "USSO_API_KEY",
+        "USSO_REFRESH_TOKEN",
+        "AGENT_ID",
+        "AGENT_PRIVATE_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    client = BaseUssoClient(
+        agent_private_key="pk",
+        usso_base_url="https://sso.example",
+    )
+    assert client.agent_id is None
+    assert client.agent_private_key == "pk"
+
+
 def test_base_client_api_key_and_copy() -> None:
     """API key headers and attribute copy."""
     client = BaseUssoClient(

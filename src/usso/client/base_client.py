@@ -26,7 +26,8 @@ class BaseUssoClient:
     Args:
         api_key: API key for authentication. Defaults to USSO_API_KEY env var.
         agent_id: Agent ID for agent-based authentication.
-            Defaults to AGENT_ID env var.
+            Defaults to AGENT_ID env var. Optional when agent_private_key
+            is set; USSO resolves the agent from the key thumbprint.
         agent_private_key: Private key for agent-based authentication.
             Defaults to AGENT_PRIVATE_KEY env var.
         refresh_token: Refresh token for token-based authentication.
@@ -76,11 +77,11 @@ class BaseUssoClient:
         if (
             not api_key
             and not refresh_token
-            and not (agent_id and agent_private_key)
+            and not agent_private_key
         ):
             raise ValueError(
                 "one of api_key, refresh_token, "
-                "agent_id and agent_private_key is required"
+                "agent_private_key is required"
             )
 
         self.api_key = api_key

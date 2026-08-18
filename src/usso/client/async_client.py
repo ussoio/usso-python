@@ -143,8 +143,8 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         tenant_id: str | None = None,
     ) -> str:
         """Generate and use an agent token for authentication."""
-        if not self.agent_id or not self.agent_private_key:
-            raise ValueError("agent_id and private_key are required")
+        if not self.agent_private_key:
+            raise ValueError("private_key is required")
 
         if not tenant_id:
             agent_response = await self._get_agent()
@@ -218,7 +218,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         if self.api_key:
             api_key_response = await self._get_api_key()
             return list(api_key_response.get("scopes", []) or [])
-        if self.agent_id and self.agent_private_key:
+        if self.agent_private_key:
             agent_response = await self._get_agent()
             return list(agent_response.get("scopes", []) or [])
         if self.refresh_token:
@@ -239,7 +239,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
                 subset_scope=scope, user_scopes=await self._get_scopes()
             ):
                 raise PermissionDenied(detail=f"Scope {scope} is not allowed")
-        if not (self.agent_id and self.agent_private_key):
+        if not self.agent_private_key:
             return None
 
         return await self.use_agent_token(scopes=scopes, aud=aud)
