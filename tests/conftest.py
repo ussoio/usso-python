@@ -12,6 +12,29 @@ from usso_jwt.algorithms import AbstractKey, EdDSAKey
 
 dotenv.load_dotenv()
 
+try:
+    import django
+    from django.conf import settings
+
+    if not settings.configured:
+        settings.configure(
+            SECRET_KEY="usso-test-secret",
+            INSTALLED_APPS=[
+                "django.contrib.auth",
+                "django.contrib.contenttypes",
+            ],
+            DATABASES={
+                "default": {
+                    "ENGINE": "django.db.backends.sqlite3",
+                    "NAME": ":memory:",
+                }
+            },
+            USE_TZ=True,
+        )
+        django.setup()
+except ImportError:
+    django = None
+
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _dispose_lite_database() -> AsyncIterator[None]:

@@ -7,6 +7,27 @@ import httpx
 from usso_jwt.schemas import JWT, JWTConfig
 
 
+def jwt_from_token(usso_base_url: str, token: str) -> JWT:
+    """Build a JWT helper object for a raw token string."""
+    return JWT(
+        token=token,
+        config=JWTConfig(
+            jwks_url=f"{usso_base_url.rstrip('/')}/.well-known/jwks.json"
+        ),
+    )
+
+
+def payload_scopes(token: JWT | None) -> list[str]:
+    """Extract scopes from a JWT payload or return an empty list."""
+    if token is None:
+        return []
+    payload = token.payload
+    if isinstance(payload, dict):
+        return list(payload.get("scopes") or [])
+    scopes = getattr(payload, "scopes", None)
+    return list(scopes or [])
+
+
 class BaseUssoClient:
     """
     Base client class for USSO authentication.
@@ -62,6 +83,7 @@ class BaseUssoClient:
         )
         self.usso_base_url = base_url.rstrip("/")
         self.usso_refresh_url = f"{self.usso_base_url}/api/sso/v1/auth/refresh"
+        self.headers = httpx.Headers()
 
         api_key = api_key or os.getenv("USSO_API_KEY")
         refresh_token = refresh_token or os.getenv("USSO_REFRESH_TOKEN")
@@ -95,6 +117,10 @@ class BaseUssoClient:
 
         if self.api_key:
             self.headers.update({"x-api-key": self.api_key})
+
+    def headers_map(self) -> dict[str, str]:
+        """Expose request headers as a plain dict for tests/callers."""
+        return dict(self.headers)
 
     def copy_attributes_from(self, client: Self) -> None:
         """

@@ -10,7 +10,7 @@ from usso_jwt.schemas import JWT, JWTConfig
 from ..exceptions import PermissionDenied
 from ..schemas import UserResponse
 from ..utils import agent
-from .base_client import BaseUssoClient
+from .base_client import BaseUssoClient, jwt_from_token
 
 
 class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
@@ -92,11 +92,9 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         """
         response.raise_for_status()
         data: dict[str, Any] = response.json()
-        self.access_token = JWT(
-            token=data.get("access_token") or "",
-            config=JWTConfig(
-                jwks_url=f"{self.usso_base_url}/.well-known/jwks.json"
-            ),
+        self.access_token = jwt_from_token(
+            self.usso_base_url,
+            data.get("access_token") or "",
         )
         refresh_data = data.get("token")
         refresh_token = (
@@ -104,11 +102,9 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             if isinstance(refresh_data, dict)
             else None
         )
-        self._refresh_token = JWT(
-            token=refresh_token or "",
-            config=JWTConfig(
-                jwks_url=f"{self.usso_base_url}/.well-known/jwks.json"
-            ),
+        self._refresh_token = jwt_from_token(
+            self.usso_base_url,
+            refresh_token or "",
         )
         if self.access_token:
             self.headers.update({

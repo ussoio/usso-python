@@ -105,6 +105,12 @@ class PermissionDenied(USSOException):
 
 
 USSOError = USSOException
+PermissionDeniedError = PermissionDenied
+
+
+def _raise_auth_error(error_type: str, **kwargs: Any) -> None:
+    """Backward-compatible alias for raising auth errors."""
+    _handle_exception(error_type, **kwargs)
 
 
 def _handle_exception(error_type: str, **kwargs: Any) -> None:
