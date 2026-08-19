@@ -104,6 +104,9 @@ class PermissionDenied(USSOException):
         )
 
 
+USSOError = USSOException
+
+
 def _handle_exception(error_type: str, **kwargs: Any) -> None:
     """
     Handle authentication-related exceptions.

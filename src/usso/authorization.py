@@ -91,10 +91,9 @@ def _normalize_path(path: list[str] | str) -> list[str]:
     """
     if isinstance(path, str):
         return path.split("/")
-    elif isinstance(path, list):
+    if isinstance(path, list):
         return path
-    else:
-        raise TypeError(f"Invalid path type: {type(path)}")
+    raise TypeError(f"Invalid path type: {type(path)}")
 
 
 def _match_path_parts(
@@ -490,7 +489,6 @@ def get_common_scopes(
         )
     ]
 
-    scopes_a = list(
+    return list(
         set(scopes_a + new_permitted_scopes) - set(not_permitted_scopes)
     )
-    return scopes_a

@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.usso.utils.string_utils import get_authorization_scheme_param
+from usso.utils.string_utils import get_authorization_scheme_param
 
 
 @pytest.fixture

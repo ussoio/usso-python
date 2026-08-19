@@ -6,6 +6,7 @@ import uuid
 
 import httpx
 from usso_jwt import sign
+from usso_jwt.algorithms import AbstractKey
 from usso_jwt.enums import Algorithm
 
 
@@ -21,13 +22,16 @@ def generate_agent_jwt(
     Generate a JWT for agent authentication.
 
     Creates a signed JWT using Ed25519 algorithm with agent credentials
-    for authenticating as a service agent.
+    for authenticating as a service agent. The JWT header always includes
+    ``kid`` (SHA-256 of the public SPKI DER). ``iss`` is set only when
+    ``agent_id`` is available.
 
     Args:
         scopes: List of scopes to request for the agent.
         aud: Audience for the JWT.
         tenant_id: Tenant ID for the agent token.
-        agent_id: Agent ID. Defaults to AGENT_ID env var.
+        agent_id: Agent ID. Defaults to AGENT_ID env var. Optional when
+            the private key is provided; USSO looks up the agent by kid.
         private_key: Private key for signing.
             Defaults to AGENT_PRIVATE_KEY env var.
 
@@ -35,22 +39,27 @@ def generate_agent_jwt(
         str: Signed JWT token string.
 
     Raises:
-        ValueError: If agent_id or private_key are not provided.
+        ValueError: If private_key is not provided.
 
     """
     agent_id = agent_id or os.getenv("AGENT_ID")
     private_key = private_key or os.getenv("AGENT_PRIVATE_KEY")
 
-    if not agent_id or not private_key:
-        raise ValueError("agent_id and private_key are required")
+    if not private_key:
+        raise ValueError("private_key is required")
 
     if isinstance(private_key, str):
         private_key_bytes = private_key.encode()
     else:
         private_key_bytes = private_key
 
-    payload = {
-        "iss": agent_id,
+    loaded = AbstractKey.load_pem(private_key_bytes)
+    header: dict[str, str] = {
+        "alg": str(Algorithm.Ed25519),
+        "typ": "JWT",
+        "kid": loaded.kid,
+    }
+    payload: dict[str, object] = {
         "scopes": scopes,
         "aud": aud,
         "exp": int(time.time()) + 300,
@@ -59,15 +68,15 @@ def generate_agent_jwt(
         "jti": str(uuid.uuid4()),
         "tenant_id": tenant_id,
     }
+    if agent_id:
+        payload["iss"] = agent_id
 
-    jwt = sign.generate_jwt(
-        header={"alg": Algorithm.Ed25519.value, "typ": "JWT"},
+    return sign.generate_jwt(
+        header=header,
         payload=payload,
         key=private_key_bytes,
         alg=Algorithm.Ed25519,
     )
-
-    return jwt
 
 
 def get_agent_token(jwt: str) -> str:

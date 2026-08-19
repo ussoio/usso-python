@@ -9,10 +9,10 @@ across microservices.
 from .auth import UssoAuth
 from .client import AsyncUssoClient, UssoClient
 from .config import APIHeaderConfig, AuthConfig, HeaderConfig
-from .exceptions import USSOException
+from .exceptions import USSOError, USSOException
 from .user import UserData
 
-__version__ = "0.31.7"
+__version__ = "0.32.0"
 
 __all__ = [
     # API header config
@@ -23,6 +23,7 @@ __all__ = [
     "AuthConfig",
     "HeaderConfig",
     # Exceptions
+    "USSOError",
     "USSOException",
     # Models
     "UserData",
