@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from django.conf import settings
 from django.contrib.auth.backends import BaseBackend
 from django.contrib.auth.models import User
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.utils import IntegrityError
 from django.http.request import HttpRequest
 
@@ -48,7 +49,7 @@ class USSOAuthenticationBackend(BaseBackend):
         """Return Django user by ID for auth backend contract."""
         try:
             return User.objects.get(pk=user_id)
-        except User.DoesNotExist:
+        except ObjectDoesNotExist:
             return None
 
     def get_or_create_user(

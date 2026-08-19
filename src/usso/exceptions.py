@@ -1,6 +1,7 @@
 """USSO exception classes."""
 
 import logging
+from typing import Any
 
 logger = logging.getLogger("usso")
 
@@ -14,7 +15,7 @@ error_messages = {
 }
 
 
-class USSOException(Exception):  # noqa: N818
+class USSOException(Exception):  # ruff: ignore[error-suffix-on-exception-name]
     """USSOException is a base exception for all USSO exceptions."""
 
     status_code: int = 401
@@ -51,7 +52,7 @@ class USSOException(Exception):  # noqa: N818
                 }
             else:
                 self.message = {
-                    "en": detail,
+                    "en": detail or "",
                 }
         else:
             if isinstance(message, str):
@@ -103,7 +104,7 @@ class PermissionDenied(USSOException):
         )
 
 
-def _handle_exception(error_type: str, **kwargs: dict) -> None:
+def _handle_exception(error_type: str, **kwargs: Any) -> None:
     """
     Handle authentication-related exceptions.
 

@@ -1,7 +1,7 @@
 """Asynchronous HTTP client for USSO API."""
 
 import os
-from typing import Self
+from typing import Any, Self
 
 import httpx
 from aiocache import cached
@@ -47,14 +47,19 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             "USSO_BASE_URL", "https://sso.usso.io"
         ),
         client: Self | None = None,
-        **kwargs: dict,
+        **kwargs: Any,
     ) -> None:
         """
         Initialize the async USSO client.
 
         See class docstring for parameter details.
         """
-        httpx.AsyncClient.__init__(self, base_url=usso_base_url, **kwargs)
+        base_url = (
+            usso_base_url
+            or os.getenv("USSO_BASE_URL")
+            or "https://sso.usso.io"
+        )
+        httpx.AsyncClient.__init__(self, base_url=base_url, **kwargs)
         BaseUssoClient.__init__(
             self,
             usso_base_url=usso_base_url,
@@ -86,15 +91,21 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
 
         """
         response.raise_for_status()
-        data: dict[str, str | dict[str, str]] = response.json()
+        data: dict[str, Any] = response.json()
         self.access_token = JWT(
-            token=data.get("access_token"),
+            token=data.get("access_token") or "",
             config=JWTConfig(
                 jwks_url=f"{self.usso_base_url}/.well-known/jwks.json"
             ),
         )
+        refresh_data = data.get("token")
+        refresh_token = (
+            refresh_data.get("refresh_token")
+            if isinstance(refresh_data, dict)
+            else None
+        )
         self._refresh_token = JWT(
-            token=data.get("token", {}).get("refresh_token"),
+            token=refresh_token or "",
             config=JWTConfig(
                 jwks_url=f"{self.usso_base_url}/.well-known/jwks.json"
             ),
@@ -141,7 +152,8 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             raise ValueError("refresh_token or usso_api_key is required")
 
         response = await self.post(
-            self.usso_refresh_url, json={"refresh_token": self.refresh_token}
+            self.usso_refresh_url,
+            json={"refresh_token": f"{self.refresh_token}"},
         )
         return self._handle_refresh_response(response)
 
@@ -159,15 +171,12 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         if hasattr(self, "api_key") and self.api_key:
             return self
 
-        if not (
-            self.access_token
-            and self.access_token.is_temporally_valid()
-        ):
+        if not (self.access_token and self.access_token.is_temporally_valid()):
             await self._refresh()
         return self
 
     async def _request(
-        self, method: str, url: str, **kwargs: dict
+        self, method: str, url: str, **kwargs: Any
     ) -> httpx.Response:
         """
         Make an authenticated HTTP request.
@@ -296,13 +305,15 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         """Get the refresh token scopes."""
 
         await self._refresh()
-        return self.access_token.payload.get("scopes", [])
+        if self.access_token is None:
+            raise RuntimeError("Access token is not available")
+        return self._access_token_scopes()
 
     async def _get_scopes(self) -> list[str]:
         """Get the scopes."""
 
         if self.access_token and self.access_token.is_temporally_valid():
-            return self.access_token.payload.get("scopes", [])
+            return self._access_token_scopes()
         if self.api_key:
             api_key_response = await self._get_api_key()
             return api_key_response.get("scopes", [])
@@ -311,10 +322,11 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             return agent_response.get("scopes", [])
         if self.refresh_token:
             return await self._get_refresh_token_scopes()
+        return []
 
     async def _get_token(
         self, scopes: str | list[str], aud: str = "sso"
-    ) -> str:
+    ) -> str | None:
         """
         Get authentication token for USSO service.
 
@@ -326,7 +338,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             JWT token string
         """
 
-        from usso import authorization
+        from .. import authorization
 
         if isinstance(scopes, str):
             scopes = [scopes]
@@ -337,6 +349,6 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             ):
                 raise PermissionDenied(detail=f"Scope {scope} is not allowed")
         if not (self.agent_id and self.agent_private_key):
-            return
+            return None
 
         return await self.use_agent_token(scopes=scopes, aud=aud)

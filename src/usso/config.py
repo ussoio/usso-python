@@ -2,8 +2,8 @@
 
 import json
 import os
-from collections.abc import Awaitable, Callable
-from typing import Union
+from collections.abc import Callable, Coroutine
+from typing import Any, Union
 
 import usso_jwt.config
 from pydantic import BaseModel, ConfigDict, Field
@@ -55,6 +55,8 @@ class HeaderConfig(BaseModel):
 
         headers: dict[str, object] = getattr(request, "headers", {})
         header_auth = headers.get(self.header_name)
+        if not isinstance(header_auth, str):
+            return None
         if self.header_name == "Authorization":
             scheme, credentials = get_authorization_scheme_param(header_auth)
             if scheme.lower() == "bearer":
@@ -80,7 +82,7 @@ class HeaderConfig(BaseModel):
         cookies: dict[str, str] = getattr(request, "cookies", {})
         return cookies.get(self.cookie_name)
 
-    def get_key(self, request: object) -> str | None:  # type: ignore
+    def get_key(self, request: object) -> str | None:
         """
         Extract token from request (header or cookie).
 
@@ -131,21 +133,19 @@ class APIHeaderConfig(HeaderConfig):
         exclude=True,
         repr=False,
     )
-    api_key_verifier_async: Callable[[str], Awaitable[UserData]] | None = (
-        Field(
-            default=None,
-            exclude=True,
-            repr=False,
-        )
+    api_key_verifier_async: (
+        Callable[[str], Coroutine[Any, Any, UserData]] | None
+    ) = Field(
+        default=None,
+        exclude=True,
+        repr=False,
     )
 
 
 class AuthConfig(usso_jwt.config.JWTConfig):
     """Configuration for JWT processing."""
 
-    api_key_header: APIHeaderConfig | None = APIHeaderConfig(
-        type="CustomHeader", name="x-api-key"
-    )
+    api_key_header: APIHeaderConfig | None = APIHeaderConfig()
     jwt_header: HeaderConfig | None = HeaderConfig()
     static_api_keys: list[str] | None = None
 
@@ -161,8 +161,9 @@ class AuthConfig(usso_jwt.config.JWTConfig):
 
         """
         if not data:
-            if os.getenv("JWT_CONFIG"):
-                data = json.loads(os.getenv("JWT_CONFIG"))
+            jwt_config = os.getenv("JWT_CONFIG")
+            if jwt_config:
+                data = json.loads(jwt_config)
             else:
                 base_url = os.getenv("USSO_BASE_URL", "https://sso.usso.io")
                 data = {"jwks_url": f"{base_url}/.well-known/jwks.json"}
@@ -200,7 +201,7 @@ class AuthConfig(usso_jwt.config.JWTConfig):
         return None
 
     def verify_token(
-        self, token: str, *, raise_exception: bool = True, **kwargs: dict
+        self, token: str, *, raise_exception: bool = True, **kwargs: Any
     ) -> bool:
         """
         Verify a JWT token.

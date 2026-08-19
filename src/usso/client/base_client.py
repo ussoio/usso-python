@@ -3,6 +3,7 @@
 import os
 from typing import Self
 
+import httpx
 from usso_jwt.schemas import JWT, JWTConfig
 
 
@@ -31,6 +32,8 @@ class BaseUssoClient:
 
     """
 
+    headers: httpx.Headers
+
     def __init__(
         self,
         *,
@@ -52,7 +55,12 @@ class BaseUssoClient:
             self.copy_attributes_from(client)
             return
 
-        self.usso_base_url = usso_base_url.rstrip("/")
+        base_url = (
+            usso_base_url
+            or os.getenv("USSO_BASE_URL")
+            or "https://sso.usso.io"
+        )
+        self.usso_base_url = base_url.rstrip("/")
         self.usso_refresh_url = f"{self.usso_base_url}/api/sso/v1/auth/refresh"
 
         api_key = api_key or os.getenv("USSO_API_KEY")
@@ -83,10 +91,9 @@ class BaseUssoClient:
             if refresh_token
             else None
         )
-        self.access_token = None
+        self.access_token: JWT | None = None
 
         if self.api_key:
-            self.headers = self.headers or {}
             self.headers.update({"x-api-key": self.api_key})
 
     def copy_attributes_from(self, client: Self) -> None:
@@ -103,10 +110,20 @@ class BaseUssoClient:
         self.api_key = client.api_key
         self.agent_id = client.agent_id
         self.agent_private_key = client.agent_private_key
-        self.headers = client.headers.copy()
+        self.headers = httpx.Headers(client.headers)
+
+    def _access_token_scopes(self) -> list[str]:
+        """Return the scopes claim from the current access token payload."""
+        if self.access_token is None:
+            return []
+        payload = self.access_token.payload
+        if isinstance(payload, dict):
+            return list(payload.get("scopes") or [])
+        scopes = getattr(payload, "scopes", None)
+        return list(scopes or [])
 
     @property
-    def refresh_token(self) -> JWT:
+    def refresh_token(self) -> JWT | None:
         """
         The refresh token, validating it if present.
 
@@ -116,13 +133,14 @@ class BaseUssoClient:
             JWT: The refresh token JWT object, or None if invalid/expired.
 
         """
-        if (
-            self._refresh_token
-            and self._refresh_token.verify(
-                expected_token_type="refresh",  # noqa: S106
-            )
-            and self._refresh_token.is_temporally_valid()
-        ):
-            self._refresh_token = None
+        if self._refresh_token is not None:
+            try:
+                is_valid = self._refresh_token.verify(
+                    expected_token_type="refresh",  # ruff: ignore[hardcoded-password-func-arg]
+                )
+            except Exception:
+                is_valid = False
+            if not is_valid or not self._refresh_token.is_temporally_valid():
+                self._refresh_token = None
 
         return self._refresh_token

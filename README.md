@@ -57,10 +57,11 @@ config = JWTConfig(
     issuer="https://sso.example.com",
     audience="api.example.com",
     type=Algorithm.EdDSA,
-    header=JWTHeaderConfig(type="Authorization")
+    header=JWTHeaderConfig(type="Authorization"),
 )
 
 authenticator = get_authenticator(config)
+
 
 @app.get("/me")
 def get_me(user: UserData = Depends(authenticator)):
@@ -112,6 +113,54 @@ tox
 
 ---
 
+## USSO Lite for standalone FastAPI applications
+
+Install the local identity dependencies and mount the router:
+
+```bash
+pip install "usso[lite,fastapi]"
+```
+
+```python
+from fastapi import FastAPI
+from usso.lite import EXCEPTION_HANDLERS, LiteConfig, create_lite_router
+
+app = FastAPI()
+config = LiteConfig(
+    database_url="sqlite+aiosqlite:///./identity.db",
+    issuer="https://api.example.com",
+    audience="api.example.com",
+    otp_sender=send_otp,  # async (identifier_type, identifier, code)
+)
+app.include_router(create_lite_router(config))
+for exception, handler in EXCEPTION_HANDLERS.items():
+    app.add_exception_handler(exception, handler)
+```
+
+Lite emits the same `UserData`-compatible claims as USSO and publishes its
+public signing key at `/.well-known/jwks.json`. A service can therefore move
+to full USSO by changing its issuer/JWKS configuration without changing its
+authorization code.
+
+Security defaults:
+
+- public registration cannot assign roles or scopes;
+- user-management routes require `admin:usso/lite/users` (or a broader USSO
+  scope);
+- OTP values are never returned by HTTP unless
+  `expose_otp_in_response=True` is explicitly enabled for local development;
+- refresh tokens are single-use and sessions are checked on every local
+  authenticated request;
+- login, registration, and OTP requests are rate-limited.
+
+For initial provisioning, pass a trusted FastAPI dependency as
+`admin_dependency=` (for example, a deployment-only API-key dependency), use
+`POST /users` to create the first scoped administrator, then remove that
+bootstrap dependency. Do not grant the admin scope through `default_scopes`,
+because defaults apply to every public registration.
+
+---
+
 ## 🤝 Contributing
 
 We welcome contributions! 
@@ -121,4 +170,3 @@ We welcome contributions!
 ## 📝 License
 
 MIT License © \[mahdikiani]
-

@@ -17,6 +17,7 @@ class AuthIdentifier(StrEnum):
     PHONE = "phone"  # Phone number
     USERNAME = "username"  # Username
     TELEGRAM_ID = "telegram_id"  # Telegram user ID
+    BALE_ID = "bale_id"  # Bale messenger user ID
     PASSKEY_ID = "passkey_id"  # Passkey ID (WebAuthn/FIDO2)
     QR_SESSION = "qr_session"  # like WhatsApp Web style QR login
     NATIONAL_ID = "national_id"  # National ID
@@ -28,7 +29,7 @@ class AuthIdentifier(StrEnum):
 
     def get_identifier_validator(
         self,
-    ) -> Callable[[str], tuple[bool, str, str]]:
+    ) -> Callable[[str], tuple[bool, str | None, str | None]]:
         """
         Get the validator function for this identifier type.
 
@@ -39,14 +40,19 @@ class AuthIdentifier(StrEnum):
                 validator exists.
 
         """
-        import utils.validators
+        from .utils import validators
 
-        return {
-            AuthIdentifier.EMAIL: utils.validators.validate_email,
-            AuthIdentifier.PHONE: utils.validators.validate_phone,
-            AuthIdentifier.USERNAME: utils.validators.validate_username,
-            AuthIdentifier.TELEGRAM_ID: utils.validators.validate_telegram_id,
-        }.get(self, lambda s: (True, None, s))
+        validators_map: dict[
+            AuthIdentifier,
+            Callable[[str], tuple[bool, str | None, str | None]],
+        ] = {
+            AuthIdentifier.EMAIL: validators.validate_email,
+            AuthIdentifier.PHONE: validators.validate_phone,
+            AuthIdentifier.USERNAME: validators.validate_username,
+            AuthIdentifier.TELEGRAM_ID: validators.validate_telegram_id,
+            AuthIdentifier.BALE_ID: validators.validate_telegram_id,
+        }
+        return validators_map.get(self, lambda s: (True, None, s))
 
 
 class AuthSecret(StrEnum):
@@ -58,7 +64,7 @@ class AuthSecret(StrEnum):
     """
 
     # Password-based authentication
-    PASSWORD = "password"  # Traditional password  # noqa: S105
+    PASSWORD = "password"  # Traditional password  # ruff: ignore[hardcoded-password-string]
 
     # One-time password methods
     TOTP = "totp"  # Time-based OTP (Authenticator apps)
@@ -74,10 +80,10 @@ class AuthSecret(StrEnum):
 
     # OAuth authentication
     OAUTH = "oauth"  # OAuth access token
-    ID_TOKEN = "id_token"  # OIDC ID token  # noqa: S105
+    ID_TOKEN = "id_token"  # OIDC ID token  # ruff: ignore[hardcoded-password-string]
 
     # Telegram authentication
-    TELEGRAM_TOKEN = "telegram_token"  # Telegram bot token  # noqa: S105
+    TELEGRAM_TOKEN = "telegram_token"  # Telegram bot token  # ruff: ignore[hardcoded-password-string]
 
     @classmethod
     def get_identifier_type(

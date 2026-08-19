@@ -3,6 +3,7 @@
 import logging
 from collections.abc import Callable
 from functools import wraps
+from typing import Any, cast
 
 from django.http.request import HttpRequest
 
@@ -30,7 +31,7 @@ class USSOAuthentication(UssoAuth):
         jwt_config: AvailableJwtConfigs | None = None,
         *,
         raise_exception: bool = True,
-        expected_token_type: str = "access",  # noqa: S107
+        expected_token_type: str = "access",  # ruff: ignore[hardcoded-password-default]
         from_usso_base_url: str | None = None,
     ) -> None:
         """Initialize Django authentication helper."""
@@ -132,7 +133,7 @@ class USSOAuthentication(UssoAuth):
                             f"to {action} {resource_path}"
                         )
                     )
-                request.usso_user = user
+                cast(Any, request).usso_user = user
                 return view_func(request, *args, **kwargs)
 
             return _wrapped_view

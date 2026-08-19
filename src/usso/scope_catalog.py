@@ -87,9 +87,7 @@ def scopes_from_routers(
             path = path()
         if path:
             paths.append(str(path))
-    return scopes_from_resource_paths(
-        paths, actions=actions, labels=labels
-    )
+    return scopes_from_resource_paths(paths, actions=actions, labels=labels)
 
 
 async def fetch_client_credentials_token(
@@ -192,6 +190,10 @@ async def register_scope_catalog(
             "(SCOPE_CATALOG_CLIENT_ID/SECRET unset)"
         )
         return False
+
+    if api_base_path is None or oauth_token_path is None:
+        raise RuntimeError("USSO API paths are not configured")
+
     if not scopes:
         logger.info("Skipping scope catalog registration (empty scopes)")
         return False

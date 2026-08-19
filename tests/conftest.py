@@ -2,23 +2,34 @@
 
 import os
 import time
+from collections.abc import AsyncIterator
 
 import dotenv
 import pytest
+import pytest_asyncio
 from usso_jwt import sign
 from usso_jwt.algorithms import AbstractKey, EdDSAKey
 
 dotenv.load_dotenv()
 
 
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def _dispose_lite_database() -> AsyncIterator[None]:
+    """Dispose the global USSO Lite engine so its worker threads exit."""
+    yield
+    from src.usso.lite.database import dispose
+
+    await dispose()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_debugpy() -> None:
     """Set up debugpy for remote debugging."""
     if os.getenv("DEBUGPY", "False").lower() in ("true", "1", "yes"):
-        import debugpy  # noqa: T100
+        import debugpy  # ruff: ignore[debugger]
 
-        debugpy.listen(("127.0.0.1", 3020))  # noqa: T100
-        debugpy.wait_for_client()  # noqa: T100
+        debugpy.listen(("127.0.0.1", 3020))  # ruff: ignore[debugger]
+        debugpy.wait_for_client()  # ruff: ignore[debugger]
 
 
 @pytest.fixture(scope="session")

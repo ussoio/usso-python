@@ -35,7 +35,7 @@ class USSOAuthentication(UssoAuth):
         jwt_config: AvailableJwtConfigs | None = None,
         *,
         raise_exception: bool = True,
-        expected_token_type: str = "access",  # noqa: S107
+        expected_token_type: str = "access",  # ruff: ignore[hardcoded-password-default]
         from_usso_base_url: str | None = None,
     ) -> None:
         """
@@ -49,7 +49,7 @@ class USSOAuthentication(UssoAuth):
         self.raise_exception = raise_exception
         self.expected_token_type = expected_token_type
 
-    def __call__(self, request: Request) -> UserData:
+    def __call__(self, request: Request) -> UserData | None:
         """
         Make the class callable as a FastAPI dependency.
 
@@ -132,7 +132,6 @@ class USSOAuthentication(UssoAuth):
                 return self.user_data_from_jwe(
                     token, raise_exception=self.raise_exception
                 )
-                return None
 
             # Non-JWT/JWE compact token: treat it as an API key.
             return self.user_data_from_api_key(token)
@@ -146,6 +145,7 @@ class USSOAuthentication(UssoAuth):
             message="No token provided",
             raise_exception=self.raise_exception,
         )
+        return None
 
     async def usso_access_security_async(
         self, request: Request
@@ -178,7 +178,6 @@ class USSOAuthentication(UssoAuth):
                 return await self.user_data_from_jwe_async(
                     token, raise_exception=self.raise_exception
                 )
-                return None
 
             return await self.user_data_from_api_key_async(token)
 
@@ -191,6 +190,7 @@ class USSOAuthentication(UssoAuth):
             message="No token provided",
             raise_exception=self.raise_exception,
         )
+        return None
 
     def jwt_access_security_ws(self, websocket: WebSocket) -> UserData | None:
         """
@@ -221,7 +221,6 @@ class USSOAuthentication(UssoAuth):
                 return self.user_data_from_jwe(
                     token, raise_exception=self.raise_exception
                 )
-                return None
 
             return self.user_data_from_api_key(token)
 
@@ -233,6 +232,7 @@ class USSOAuthentication(UssoAuth):
             message="No token provided",
             raise_exception=self.raise_exception,
         )
+        return None
 
     def authorize(
         self,
@@ -266,6 +266,13 @@ class USSOAuthentication(UssoAuth):
             from ... import authorization
 
             user = self.usso_access_security(request)
+            if user is None:
+                _handle_exception(
+                    "Unauthorized",
+                    message="No token provided",
+                    raise_exception=self.raise_exception,
+                )
+                raise RuntimeError("No token provided")
             user_scopes = user.scopes or []
             if not authorization.check_access(
                 user_scopes=user_scopes,

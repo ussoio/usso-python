@@ -1,6 +1,7 @@
 """Django middleware for USSO authentication."""
 
 import logging
+from typing import Any, cast
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -36,7 +37,7 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         """
         return settings.USSO_JWT_CONFIG
 
-    def process_request(self, request: HttpRequest) -> None:
+    def process_request(self, request: HttpRequest) -> JsonResponse | None:
         """
         Process incoming request to authenticate user.
 
@@ -47,19 +48,27 @@ class USSOAuthenticationMiddleware(MiddlewareMixin):
         Args:
             request: The Django HTTP request object.
 
+        Returns:
+            JsonResponse | None: A 401 response on authentication error,
+                otherwise None.
+
         """
         try:
-            if hasattr(request, "user") and request.user.is_authenticated:
-                return
+            if (
+                hasattr(request, "user")
+                and cast(Any, request).user.is_authenticated
+            ):
+                return None
 
             user_data = self.jwt_access_security_none(request)
             if user_data:
                 user = self.get_or_create_user(user_data)
-                request.user = user
-                request._dont_enforce_csrf_checks = True
+                cast(Any, request).user = user
+                cast(Any, request)._dont_enforce_csrf_checks = True
         except USSOException as e:
             # Handle any errors raised by USSO authentication
             return JsonResponse({"error": str(e)}, status=401)
+        return None
 
     def get_request_jwt(self, request: HttpRequest) -> str | None:
         """

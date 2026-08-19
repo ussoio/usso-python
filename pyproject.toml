@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso"
-version = "0.31.9"
+version = "0.32.0"
 description = "A plug-and-play client for integrating universal single sign-on (SSO) with Python frameworks, enabling secure and seamless authentication across microservices."
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = "MIT"
 license-files = ["LICENSE.txt"]
 keywords = ["usso", "sso", "authentication", "security", "fastapi", "django"]
@@ -40,6 +40,7 @@ django = ["Django>=3.2"]
 dev = ["check-manifest", "pytest", "pytest_asyncio"]
 test = ["coverage"]
 validator = ["email-validator", "phonenumbers"]
+lite = ["sqlalchemy>=2.0", "aiosqlite>=0.20.0", "argon2-cffi>=23.1.0"]
 all = [
   "fastapi>=0.65.0",
   "uvicorn[standard]>=0.13.0",
@@ -48,6 +49,9 @@ all = [
   "pytest",
   "pytest_asyncio",
   "coverage",
+  "sqlalchemy>=2.0",
+  "aiosqlite>=0.20.0",
+  "argon2-cffi>=23.1.0",
 ]
 
 [project.urls]
@@ -98,8 +102,8 @@ select = [
   "ERA", # remove commented code
   "RUF", # ruff-specific improvements
 ]
-ignore = ["TRY003", "COM812", "B008", "D202", "D203", "D209", "D212", "D413"]
-per-file-ignores = { "tests/*" = ["G004", "S101"], "server/db.py" = ["TRY"] }
+ignore = ["raise-vanilla-args", "missing-trailing-comma", "function-call-in-default-argument", "blank-line-after-function", "incorrect-blank-line-before-class", "new-line-after-last-paragraph", "multi-line-summary-first-line", "missing-blank-line-after-last-section", "any-type", "unused-async"]
+per-file-ignores = { "tests/*" = ["logging-f-string", "assert", "hardcoded-password-string", "hardcoded-password-func-arg"], "server/db.py" = ["TRY"] }
 
 [tool.ruff.format]
 quote-style = "double"
@@ -109,3 +113,13 @@ python_version = "3.13"
 ignore_missing_imports = true
 check_untyped_defs = false
 disallow_untyped_defs = false
+explicit_package_bases = true
+mypy_path = ["."]
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=1.0.0",
+    "pytest-cov>=6.3.0",
+    "python-dotenv>=1.1.1",
+]
+

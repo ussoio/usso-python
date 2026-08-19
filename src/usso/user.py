@@ -16,9 +16,9 @@ class TokenType(StrEnum):
 
     ACCESS = "access"
     REFRESH = "refresh"
-    SECURE_TOKEN = "secure"  # noqa: S105
-    ONE_TIME_TOKEN = "one_time"  # noqa: S105
-    TEMPORARY_TOKEN = "temporary"  # noqa: S105
+    SECURE_TOKEN = "secure"  # ruff: ignore[hardcoded-password-string]
+    ONE_TIME_TOKEN = "one_time"  # ruff: ignore[hardcoded-password-string]
+    TEMPORARY_TOKEN = "temporary"  # ruff: ignore[hardcoded-password-string]
 
 
 class UserData(BaseModel):
@@ -90,7 +90,7 @@ class UserData(BaseModel):
         acr: str | None = None,
         amr: list[str] | None = None,
         signing_level: str | None = None,
-        **kwargs: dict,
+        **kwargs: Any,
     ) -> None:
         """
         Initialize user data from JWT claims.
@@ -185,18 +185,20 @@ class UserData(BaseModel):
         self,
         *,
         mode: Literal["json", "python"] | str = "python",
-        include: set[str] | list[str] | None = None,
-        exclude: set[str] | list[str] | None = None,
-        context: object | None = None,
+        include: Any | None = None,
+        exclude: Any | None = None,
+        context: Any | None = None,
         by_alias: bool | None = None,
         exclude_unset: bool = False,
         exclude_defaults: bool = False,
         exclude_none: bool = True,
+        exclude_computed_fields: bool = False,
         round_trip: bool = False,
         warnings: bool | Literal["none", "warn", "error"] = True,
         fallback: Callable[[Any], Any] | None = None,
         serialize_as_any: bool = False,
-    ) -> dict:
+        polymorphic_serialization: bool | None = None,
+    ) -> dict[str, Any]:
         """
         Dump model to dictionary.
 
@@ -215,8 +217,10 @@ class UserData(BaseModel):
             exclude_unset=exclude_unset,
             exclude_defaults=exclude_defaults,
             exclude_none=exclude_none,
+            exclude_computed_fields=exclude_computed_fields,
             round_trip=round_trip,
             warnings=warnings,
             fallback=fallback,
             serialize_as_any=serialize_as_any,
+            polymorphic_serialization=polymorphic_serialization,
         )

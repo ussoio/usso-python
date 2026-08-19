@@ -41,10 +41,14 @@ class Identifier(BaseModel):
             ValueError: If the identifier is invalid for its type.
 
         """
-        validator = self.type.get_identifier_validator()
+        validator = self.type.get_identifier_validator() if self.type else None
+        if validator is None:
+            return self
         is_valid, error, canonical_identifier = validator(self.identifier)
         if not is_valid:
-            raise ValueError(error)
+            raise ValueError(error or "Invalid identifier")
+        if canonical_identifier is None:
+            raise ValueError("Invalid identifier")
         self.identifier = canonical_identifier
         return self
 

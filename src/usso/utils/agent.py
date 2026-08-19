@@ -15,7 +15,7 @@ def generate_agent_jwt(
     tenant_id: str | None = None,
     *,
     agent_id: str | None = None,
-    private_key: str | None = None,
+    private_key: str | bytes | None = None,
 ) -> str:
     """
     Generate a JWT for agent authentication.
@@ -47,7 +47,7 @@ def generate_agent_jwt(
     if isinstance(private_key, str):
         private_key_bytes = private_key.encode()
     else:
-        private_key_bytes = private_key_bytes
+        private_key_bytes = private_key
 
     payload = {
         "iss": agent_id,

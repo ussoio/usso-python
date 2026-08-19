@@ -28,6 +28,7 @@ def app(test_key: AbstractKey) -> FastAPI:
         "type": "EDDSA",
         "key": test_key.public_pem().decode(),
         "jwt_header": {"type": "Authorization"},
+        "api_key_header": None,
     })
 
     app = fastapi.FastAPI()

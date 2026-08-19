@@ -320,7 +320,7 @@ def owner_authorization(
 def is_authorized(
     user_scope: str,
     requested_path: str,
-    requested_action: str = "read",
+    requested_action: str | None = "read",
     requested_filter: dict[str, str] | None = None,
     *,
     strict: bool = False,
@@ -387,7 +387,7 @@ def check_access(
             if is_authorized(
                 user_scope=scope,
                 requested_path=resource_path,
-                requested_action=action,
+                requested_action=action or "read",
                 requested_filter=filt,
                 strict=strict,
             ):
@@ -477,7 +477,7 @@ def get_common_scopes(
     not_permitted_scopes = [
         scope
         for scope in scopes_a
-        if not has_subset_scope(subset_scope=scope, super_scope=scopes_b)
+        if not has_subset_scope(subset_scope=scope, user_scopes=scopes_b)
     ]
     if not not_permitted_scopes:
         return scopes_a
@@ -486,7 +486,7 @@ def get_common_scopes(
         scope
         for scope in scopes_b
         if has_subset_scope(
-            subset_scope=scope, super_scope=not_permitted_scopes
+            subset_scope=scope, user_scopes=not_permitted_scopes
         )
     ]
 

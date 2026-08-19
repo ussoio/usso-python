@@ -1,7 +1,7 @@
 """Synchronous HTTP client for USSO API."""
 
 import os
-from typing import Self
+from typing import Any, Self
 
 import cachetools.func
 import httpx
@@ -12,6 +12,35 @@ from ..exceptions import PermissionDenied
 from ..schemas import UserResponse
 from ..utils import agent
 from .base_client import BaseUssoClient
+
+
+@cachetools.func.ttl_cache(maxsize=128, ttl=60)
+def _fetch_api_key_scopes(client: "UssoClient") -> dict:
+    """Fetch and cache API key scopes from the USSO service."""
+    response = client.post(
+        f"{client.usso_base_url}/api/sso/v1/apikeys/verify",
+        json={"api_key": client.api_key},
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+@cachetools.func.ttl_cache(maxsize=128, ttl=600)
+def _fetch_agent_scopes(client: "UssoClient") -> dict:
+    """Fetch and cache agent token scopes from the USSO service."""
+    jwt = agent.generate_agent_jwt(
+        scopes=[],
+        aud="sso",
+        agent_id=client.agent_id,
+        private_key=client.agent_private_key,
+    )
+
+    response = client.post(
+        f"{client.usso_base_url}/api/sso/v1/agents/scopes",
+        headers={"Authorization": f"Bearer {jwt}"},
+    )
+    response.raise_for_status()
+    return response.json()
 
 
 class UssoClient(httpx.Client, BaseUssoClient):
@@ -48,14 +77,19 @@ class UssoClient(httpx.Client, BaseUssoClient):
             "USSO_BASE_URL", "https://sso.usso.io"
         ),
         client: Self | None = None,
-        **kwargs: dict,
+        **kwargs: Any,
     ) -> None:
         """
         Initialize the synchronous USSO client.
 
         See class docstring for parameter details.
         """
-        httpx.Client.__init__(self, base_url=usso_base_url, **kwargs)
+        base_url = (
+            usso_base_url
+            or os.getenv("USSO_BASE_URL")
+            or "https://sso.usso.io"
+        )
+        httpx.Client.__init__(self, base_url=base_url, **kwargs)
 
         BaseUssoClient.__init__(
             self,
@@ -116,9 +150,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
             self._refresh()
         return self
 
-    def _request(
-        self, method: str, url: str, **kwargs: dict
-    ) -> httpx.Response:
+    def _request(self, method: str, url: str, **kwargs: Any) -> httpx.Response:
         """
         Make an authenticated HTTP request.
 
@@ -134,7 +166,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
 
         """
         self.get_session()
-        return super().request(self, method, url, **kwargs)
+        return super().request(method, url, **kwargs)
 
     def use_agent_token(
         self,
@@ -245,46 +277,27 @@ class UssoClient(httpx.Client, BaseUssoClient):
         response.raise_for_status()
         return response.json()
 
-    @cachetools.func.ttl_cache(maxsize=128, ttl=60)
     def _get_api_key(self) -> dict:
         """Get the API key scopes."""
+        return _fetch_api_key_scopes(self)
 
-        response = self.post(
-            f"{self.usso_base_url}/api/sso/v1/apikeys/verify",
-            json={"api_key": self.api_key},
-        )
-        response.raise_for_status()
-        return response.json()
-
-    @cachetools.func.ttl_cache(maxsize=128, ttl=600)
     def _get_agent(self) -> dict:
         """Get the agent token scopes."""
-
-        jwt = agent.generate_agent_jwt(
-            scopes=[],
-            aud="sso",
-            agent_id=self.agent_id,
-            private_key=self.agent_private_key,
-        )
-
-        response = self.post(
-            f"{self.usso_base_url}/api/sso/v1/agents/scopes",
-            headers={"Authorization": f"Bearer {jwt}"},
-        )
-        response.raise_for_status()
-        return response.json()
+        return _fetch_agent_scopes(self)
 
     def _get_refresh_token_scopes(self) -> list[str]:
         """Get the refresh token scopes."""
 
         self._refresh()
-        return self.access_token.payload.get("scopes", [])
+        if self.access_token is None:
+            raise RuntimeError("Access token is not available")
+        return self._access_token_scopes()
 
     def _get_scopes(self) -> list[str]:
         """Get the scopes."""
 
         if self.access_token and self.access_token.is_temporally_valid():
-            return self.access_token.payload.get("scopes", [])
+            return self._access_token_scopes()
         if self.api_key:
             api_key_response = self._get_api_key()
             return api_key_response.get("scopes", [])
@@ -293,10 +306,11 @@ class UssoClient(httpx.Client, BaseUssoClient):
             return agent_response.get("scopes", [])
         if self.refresh_token:
             return self._get_refresh_token_scopes()
+        return []
 
     def _get_token(
         self, scopes: str | list[str], aud: str = "sso"
-    ) -> str:
+    ) -> str | None:
         """
         Get authentication token for USSO service.
 
@@ -308,7 +322,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
             JWT token string
         """
 
-        from usso import authorization
+        from .. import authorization
 
         if isinstance(scopes, str):
             scopes = [scopes]
@@ -320,6 +334,6 @@ class UssoClient(httpx.Client, BaseUssoClient):
                 raise PermissionDenied(detail=f"Scope {scope} is not allowed")
 
         if not (self.agent_id and self.agent_private_key):
-            return
+            return None
 
         return self.use_agent_token(scopes=scopes, aud=aud)

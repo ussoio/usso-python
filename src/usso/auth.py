@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import re
+from typing import Any, cast
 from urllib.parse import urlparse
 
 import usso_jwt.exceptions
@@ -19,6 +20,15 @@ from .exceptions import _handle_exception
 from .user import UserData
 
 logger = logging.getLogger("usso")
+
+
+def _coerce_user_data(payload: object) -> UserData:
+    """Normalize a JWT payload into a UserData instance."""
+    if isinstance(payload, UserData):
+        return payload
+    if isinstance(payload, dict):
+        return UserData(**cast(dict[str, Any], payload))
+    raise TypeError("Unexpected JWT payload type")
 
 
 class UssoAuth:
@@ -46,10 +56,11 @@ class UssoAuth:
 
         """
         if jwt_config is None:
-            if os.getenv("JWT_CONFIGS"):
-                jwt_config = json.loads(os.getenv("JWT_CONFIGS"))
-            elif os.getenv("JWT_CONFIG"):
-                jwt_config = json.loads(os.getenv("JWT_CONFIG"))
+            jwt_configs_env = os.getenv("JWT_CONFIGS")
+            if jwt_configs_env:
+                jwt_config = json.loads(jwt_configs_env)
+            elif jwt_config_env := os.getenv("JWT_CONFIG"):
+                jwt_config = json.loads(jwt_config_env)
             else:
                 from_usso_base_url = os.getenv("USSO_BASE_URL")
                 jwt_config = AuthConfig()
@@ -118,9 +129,9 @@ class UssoAuth:
         self,
         token: str,
         *,
-        expected_token_type: str | None = "access",  # noqa: S107
+        expected_token_type: str | None = "access",  # ruff: ignore[hardcoded-password-default]
         raise_exception: bool = True,
-        **kwargs: dict,
+        **kwargs: Any,
     ) -> UserData | None:
         """
         Get user data from a JWT token.
@@ -147,7 +158,13 @@ class UssoAuth:
                     config=self.jwt_configs[0],
                     payload_class=UserData,
                 )
-                iss = jwt_obj.unverified_payload.iss
+                unverified = jwt_obj.unverified_payload
+                iss_value = (
+                    unverified.get("iss")
+                    if isinstance(unverified, dict)
+                    else getattr(unverified, "iss", None)
+                )
+                iss = str(iss_value) if iss_value is not None else ""
                 iss_domain = urlparse(iss).netloc
                 jwks_url = (
                     f"{self.from_usso_base_url}/.well-known/jwks.json?"
@@ -158,7 +175,7 @@ class UssoAuth:
                     expected_token_type=expected_token_type,
                     **kwargs,
                 ):
-                    return jwt_obj.payload
+                    return _coerce_user_data(jwt_obj.payload)
             except usso_jwt.exceptions.JWTError as e:
                 exp = e
 
@@ -171,7 +188,7 @@ class UssoAuth:
                     expected_token_type=expected_token_type,
                     **kwargs,
                 ):
-                    return jwt_obj.payload
+                    return _coerce_user_data(jwt_obj.payload)
             except usso_jwt.exceptions.JWTError as e:
                 exp = e
 
@@ -181,6 +198,7 @@ class UssoAuth:
             raise_exception=raise_exception,
             **kwargs,
         )
+        return None
 
     def _resolve_api_key_header(self) -> APIHeaderConfig | None:
         """Return the first configured API key header settings."""
@@ -205,6 +223,7 @@ class UssoAuth:
                 asyncio.get_running_loop()
             except RuntimeError:
                 return asyncio.run(result)
+            result.close()
             raise RuntimeError(
                 "Async api_key_verifier_async cannot be used from a running "
                 "event loop; call user_data_from_api_key_async instead."
@@ -232,6 +251,7 @@ class UssoAuth:
                 "Unauthorized",
                 message="API key authentication is not configured",
             )
+            raise RuntimeError("API key authentication is not configured")
         if header.api_key_verifier is not None or (
             header.api_key_verifier_async is not None
         ):
@@ -258,6 +278,7 @@ class UssoAuth:
                 "Unauthorized",
                 message="API key authentication is not configured",
             )
+            raise RuntimeError("API key authentication is not configured")
         if header.api_key_verifier_async is not None:
             return await header.api_key_verifier_async(api_key)
         if header.api_key_verifier is not None:
@@ -290,3 +311,25 @@ class UssoAuth:
             raise_exception=raise_exception,
         )
         return None
+
+    async def user_data_from_jwe_async(
+        self,
+        jwe: str,
+        *,
+        raise_exception: bool = True,
+    ) -> UserData | None:
+        """
+        JWE verification support (not yet implemented) - async variant.
+
+        For now, we intentionally do NOT fall back to API key verification
+        when the bearer token looks like a compact JWE.
+
+        Args:
+            jwe: The JWE token to verify
+            raise_exception: Whether to raise exception on error
+
+        Returns:
+            UserData | None: User data if token is valid, None otherwise
+
+        """
+        return self.user_data_from_jwe(jwe, raise_exception=raise_exception)
