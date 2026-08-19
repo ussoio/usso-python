@@ -9,9 +9,8 @@ from src.usso.schemas import UserResponse
 def test_bale_id_enum_value() -> None:
     """Bale IDs are a first-class identifier type, not a telegram_id alias."""
     assert AuthIdentifier.BALE_ID.value == "bale_id"
-    is_valid, error, canonical = AuthIdentifier.BALE_ID.get_identifier_validator()(
-        "712091689"
-    )
+    validator = AuthIdentifier.BALE_ID.get_identifier_validator()
+    is_valid, error, canonical = validator("712091689")
     assert is_valid is True
     assert error is None
     assert canonical == "712091689"
