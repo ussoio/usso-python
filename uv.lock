@@ -1006,7 +1006,7 @@ wheels = [
 
 [[package]]
 name = "usso"
-version = "0.32.3"
+version = "0.32.4"
 source = { editable = "." }
 dependencies = [
     { name = "aiocache" },
@@ -1093,7 +1093,7 @@ requires-dist = [
     { name = "singleton-package" },
     { name = "sqlalchemy", marker = "extra == 'all'", specifier = ">=2.0" },
     { name = "sqlalchemy", marker = "extra == 'lite'", specifier = ">=2.0" },
-    { name = "usso-jwt", specifier = ">=0.2.10" },
+    { name = "usso-jwt", specifier = ">=0.2.18" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'all'", specifier = ">=0.13.0" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'fastapi'", specifier = ">=0.13.0" },
 ]
@@ -1108,7 +1108,7 @@ dev = [
 
 [[package]]
 name = "usso-jwt"
-version = "0.2.16"
+version = "0.2.18"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cachetools" },
@@ -1117,9 +1117,9 @@ dependencies = [
     { name = "json-advanced" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9e/4c/0be1ce9ac2d93cdc00d37a3bd28d2b0cedf46dfdcd3dca7a4c9316bccd78/usso_jwt-0.2.16.tar.gz", hash = "sha256:2723f5e7d46a57f10a96f4da999b1f25f896ff4ca0fa7d33d1b6f3ea04e89d00", size = 26466, upload-time = "2026-08-13T03:17:28.177Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/32/bb/feca3a0530e2c94feda35b0f20f82f01a7eecd2e3715cd5acd290d9a574e/usso_jwt-0.2.18.tar.gz", hash = "sha256:a5333d12996d27c6cc0f11d76ed344ebc4b0c2f1bda1e84dd4afd64fd697bc46", size = 28600, upload-time = "2026-08-19T11:10:43.564Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/02/4be55437d419b7388343c573a0375ec1dd4ace09a6556290d4a4c6078739/usso_jwt-0.2.16-py3-none-any.whl", hash = "sha256:dc90121aef4ce8a3d16166d02d4d892d0e5a4ab72659bfb95af927366212c9dd", size = 26282, upload-time = "2026-08-13T03:17:27.304Z" },
+    { url = "https://files.pythonhosted.org/packages/37/1c/07d1927047e91016844ec79c2f324e7653ebc8a4e27c32e1a638c2efda1a/usso_jwt-0.2.18-py3-none-any.whl", hash = "sha256:e31735654ff5587e0af7396e075a4e882a25dfd336de88199999bd3c93303f3c", size = 27224, upload-time = "2026-08-19T11:10:42.601Z" },
 ]
 
 [[package]]

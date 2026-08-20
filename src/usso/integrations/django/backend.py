@@ -48,7 +48,7 @@ class USSOAuthenticationBackend(BaseBackend):
     def get_user(self, user_id: int) -> User | None:
         """Return Django user by ID for auth backend contract."""
         try:
-            return User.objects.get(pk=user_id)
+            return User.objects.filter(pk=user_id).first()
         except ObjectDoesNotExist:
             return None
 

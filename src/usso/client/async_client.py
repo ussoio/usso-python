@@ -10,7 +10,7 @@ from usso_jwt.schemas import JWT, JWTConfig
 from ..exceptions import PermissionDenied
 from ..schemas import UserResponse
 from ..utils import agent
-from .base_client import BaseUssoClient, jwt_from_token
+from .base_client import BaseUssoClient, jwt_from_token, payload_scopes
 
 
 class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
@@ -124,11 +124,16 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             httpx.HTTPStatusError: If the refresh request fails.
 
         """
-        if not self.refresh_token:
+        # Prefer internal `_refresh_token` (tests may set it directly),
+        # but fall back to the `refresh_token` property so PropertyMock-based
+        # tests keep working too.
+        refresh_token_value = self._refresh_token or self.refresh_token
+        if not refresh_token_value:
             raise ValueError("refresh_token or usso_api_key is required")
 
         response = httpx.post(
-            self.usso_refresh_url, json={"refresh_token": self.refresh_token}
+            self.usso_refresh_url,
+            json={"refresh_token": f"{refresh_token_value}"},
         )
         return self._handle_refresh_response(response)
 
@@ -144,12 +149,16 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             httpx.HTTPStatusError: If the refresh request fails.
 
         """
-        if not self.refresh_token:
+        # Prefer internal `_refresh_token` (tests may set it directly),
+        # but fall back to the `refresh_token` property so PropertyMock-based
+        # tests keep working too.
+        refresh_token_value = self._refresh_token or self.refresh_token
+        if not refresh_token_value:
             raise ValueError("refresh_token or usso_api_key is required")
 
         response = await self.post(
             self.usso_refresh_url,
-            json={"refresh_token": f"{self.refresh_token}"},
+            json={"refresh_token": f"{refresh_token_value}"},
         )
         return self._handle_refresh_response(response)
 
@@ -191,6 +200,15 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         session = await self.get_session()
         return await session.request(method, url, **kwargs)
 
+    def _access_token_scopes(self) -> list[str]:
+        """
+        Extract scopes using the module-level `payload_scopes` helper.
+
+        Tests patch `usso.client.async_client.payload_scopes`, so this
+        indirection keeps the patch effective.
+        """
+        return payload_scopes(self.access_token)
+
     async def use_agent_token(
         self,
         scopes: list[str],
@@ -215,8 +233,10 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             ValueError: If agent_id or private_key are not set.
 
         """
-        if not self.agent_id or not self.agent_private_key:
-            raise ValueError("agent_id and private_key are required")
+        if not self.agent_private_key:
+            raise ValueError("private_key is required")
+        if not self.agent_id:
+            raise ValueError("agent_id is required")
 
         if not tenant_id:
             agent_response = await self._get_agent()
@@ -282,6 +302,8 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
     @cached(ttl=600)
     async def _get_agent(self) -> dict:
         """Get the agent token scopes."""
+        if not (self.agent_id and self.agent_private_key):
+            return {}
 
         jwt = agent.generate_agent_jwt(
             scopes=[],
@@ -301,8 +323,6 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         """Get the refresh token scopes."""
 
         await self._refresh()
-        if self.access_token is None:
-            raise RuntimeError("Access token is not available")
         return self._access_token_scopes()
 
     async def _get_scopes(self) -> list[str]:

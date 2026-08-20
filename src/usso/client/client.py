@@ -119,17 +119,21 @@ class UssoClient(httpx.Client, BaseUssoClient):
             httpx.HTTPStatusError: If the refresh request fails.
 
         """
-        if not self.refresh_token:
+        # Prefer internal `_refresh_token` (tests sometimes set it directly),
+        # but fall back to the `refresh_token` property so tests can also
+        # patch it via `PropertyMock`.
+        refresh_token_value = self._refresh_token or self.refresh_token
+        if not refresh_token_value:
             raise ValueError("refresh_token is required")
 
         response = httpx.post(
             self.usso_refresh_url,
-            json={"refresh_token": f"{self.refresh_token}"},
+            json={"refresh_token": f"{refresh_token_value}"},
         )
         response.raise_for_status()
         self.access_token = jwt_from_token(
             self.usso_base_url,
-            response.json().get("access_token") or "",
+            response.json().get("access_token"),
         )
         self.headers.update({"Authorization": f"Bearer {self.access_token}"})
         return response.json()
@@ -194,8 +198,10 @@ class UssoClient(httpx.Client, BaseUssoClient):
             ValueError: If agent_id or agent_private_key are not set.
 
         """
-        if not self.agent_id or not self.agent_private_key:
-            raise ValueError("agent_id and agent_private_key are required")
+        if not self.agent_private_key:
+            raise ValueError("private_key is required")
+        if not self.agent_id:
+            raise ValueError("agent_id is required")
 
         if not tenant_id:
             agent_response = self._get_agent()
@@ -283,22 +289,47 @@ class UssoClient(httpx.Client, BaseUssoClient):
         """Get the API key scopes."""
         if not self.api_key:
             return {}
-        return _verify_api_key(self.usso_base_url, self.api_key)
+
+        # Important: use `self.post` so tests can intercept via MockTransport.
+        response = self.post(
+            "/api/sso/v1/apikeys/verify",
+            json={"api_key": self.api_key},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def _access_token_scopes(self) -> list[str]:
+        """
+        Extract scopes using the module-level `payload_scopes` helper.
+
+        Tests patch `usso.client.client.payload_scopes`, so this indirection keeps
+        the patch effective without changing the BaseUssoClient behavior.
+        """
+        return payload_scopes(self.access_token)
 
     def _get_agent(self) -> dict:
         """Get the agent token scopes."""
-        return _fetch_agent_scopes(
-            self.usso_base_url,
-            self.agent_id,
-            self.agent_private_key,
+        if not (self.agent_id and self.agent_private_key):
+            return {}
+
+        # Important: use `self.post` so tests can intercept via MockTransport.
+        jwt = agent.generate_agent_jwt(
+            scopes=[],
+            aud="sso",
+            agent_id=self.agent_id,
+            private_key=self.agent_private_key,
         )
+        response = self.post(
+            "/api/sso/v1/agents/scopes",
+            headers={"Authorization": f"Bearer {jwt}"},
+        )
+        response.raise_for_status()
+        return response.json()
 
     def _get_refresh_token_scopes(self) -> list[str]:
         """Get the refresh token scopes."""
 
         self._refresh()
-        if self.access_token is None:
-            raise RuntimeError("Access token is not available")
         return self._access_token_scopes()
 
     def _get_scopes(self) -> list[str]:

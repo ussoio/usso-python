@@ -7,8 +7,11 @@ import httpx
 from usso_jwt.schemas import JWT, JWTConfig
 
 
-def jwt_from_token(usso_base_url: str, token: str) -> JWT:
+def jwt_from_token(usso_base_url: str, token: str | None) -> JWT:
     """Build a JWT helper object for a raw token string."""
+    if not isinstance(token, str):
+        # Keep error type stable for callers/tests that expect TypeError.
+        raise TypeError("token must be a string")
     return JWT(
         token=token,
         config=JWTConfig(
@@ -93,7 +96,9 @@ class BaseUssoClient:
         if (
             not api_key
             and not refresh_token
-            and not (agent_id and agent_private_key)
+            # Agent auth can be configured with the private key alone;
+            # `agent_id` may be looked up later using `kid`.
+            and not agent_private_key
         ):
             raise ValueError(
                 "one of api_key, refresh_token, "
@@ -159,6 +164,10 @@ class BaseUssoClient:
             JWT: The refresh token JWT object, or None if invalid/expired.
 
         """
+        # In API-key mode we never use/rotate refresh tokens.
+        if self.api_key:
+            return None
+
         if self._refresh_token is not None:
             try:
                 is_valid = self._refresh_token.verify(

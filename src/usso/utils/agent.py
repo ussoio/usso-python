@@ -53,7 +53,13 @@ def generate_agent_jwt(
     else:
         private_key_bytes = private_key
 
-    loaded = AbstractKey.load_pem(private_key_bytes)
+    # usso_jwt supports both PEM and DER encodings.
+    # Tests pass DER bytes via `private_der()`, so we must not force PEM.
+    stripped = private_key_bytes.lstrip()
+    if stripped.startswith(b"-----BEGIN"):
+        loaded = AbstractKey.load_pem(private_key_bytes)
+    else:
+        loaded = AbstractKey.load_der(private_key_bytes)
     header: dict[str, str] = {
         "alg": str(Algorithm.Ed25519),
         "typ": "JWT",

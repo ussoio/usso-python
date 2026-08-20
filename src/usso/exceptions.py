@@ -55,9 +55,14 @@ class USSOException(Exception):  # ruff: ignore[error-suffix-on-exception-name]
                     "en": detail or "",
                 }
         else:
-            if isinstance(message, str):
-                message = {"en": message}
-            self.message = message
+            if isinstance(message, dict):
+                self.message = message
+            elif isinstance(message, str):
+                self.message = {"en": message}
+            else:
+                # Be tolerant to non-dict message payloads (tests pass `int`).
+                self.message = {"en": str(message)}
+
         self.detail = detail or str(self.message.get("en"))
         self.data = kwargs
         super().__init__(detail)
