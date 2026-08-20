@@ -12,7 +12,7 @@ from .config import APIHeaderConfig, AuthConfig, HeaderConfig
 from .exceptions import USSOError, USSOException
 from .user import UserData
 
-__version__ = "0.32.7"
+__version__ = "0.32.8"
 
 __all__ = [
     # API header config

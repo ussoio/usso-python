@@ -1,2 +1,3 @@
 include pytest.ini
+include ty.toml
 include *.lock
