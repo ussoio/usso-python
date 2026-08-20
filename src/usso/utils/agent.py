@@ -1,13 +1,55 @@
 """Agent authentication utilities."""
 
+import hashlib
 import os
 import time
 import uuid
 
 import httpx
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    PublicFormat,
+    load_pem_public_key,
+)
 from usso_jwt import sign
 from usso_jwt.algorithms import AbstractKey
 from usso_jwt.enums import Algorithm
+from usso_jwt.utils import is_pem_key_material
+
+
+def _load_agent_key(private_key: str | bytes) -> AbstractKey:
+    """Load an agent signing key using usso-jwt PEM/DER detection."""
+    if is_pem_key_material(private_key):
+        pem_material = (
+            private_key
+            if isinstance(private_key, bytes)
+            else private_key.encode()
+        )
+        return AbstractKey.load_pem(pem_material)
+
+    key_bytes = (
+        private_key if isinstance(private_key, bytes) else private_key.encode()
+    )
+    return AbstractKey.load_der(key_bytes)
+
+
+def kid_from_verify_key(verify_key: str | bytes) -> str:
+    """Return SHA-256 hex of the public key SPKI DER (USSO server contract)."""
+    if isinstance(verify_key, bytes):
+        pem_bytes = verify_key
+    else:
+        text = verify_key.strip()
+        if text.startswith(("\"", "'")) and text.endswith(text[:1]):
+            text = text[1:-1].strip()
+        text = text.replace("\\n", "\n")
+        pem_bytes = text.encode()
+    public_key = load_pem_public_key(pem_bytes, backend=default_backend())
+    der = public_key.public_bytes(
+        Encoding.DER,
+        PublicFormat.SubjectPublicKeyInfo,
+    )
+    return hashlib.sha256(der).hexdigest()
 
 
 def generate_agent_jwt(
@@ -48,23 +90,11 @@ def generate_agent_jwt(
     if not private_key:
         raise ValueError("private_key is required")
 
-    if isinstance(private_key, str):
-        private_key_bytes = private_key.encode()
-    else:
-        private_key_bytes = private_key
-
-    # usso_jwt supports both PEM and DER encodings.
-    # Tests pass DER bytes via `private_der()`, so we must not force PEM.
-    stripped = private_key_bytes.lstrip()
-    if stripped.startswith(b"-----BEGIN"):
-        loaded = AbstractKey.load_pem(private_key_bytes)
-    else:
-        loaded = AbstractKey.load_der(private_key_bytes)
-    header: dict[str, str] = {
-        "alg": str(Algorithm.Ed25519),
-        "typ": "JWT",
-        "kid": loaded.kid,
-    }
+    loaded = _load_agent_key(private_key)
+    header = sign.create_jwt_header(
+        alg=str(Algorithm.Ed25519),
+        kid=loaded.kid,
+    )
     payload: dict[str, object] = {
         "scopes": scopes,
         "aud": aud,
@@ -80,7 +110,7 @@ def generate_agent_jwt(
     return sign.generate_jwt(
         header=header,
         payload=payload,
-        key=private_key_bytes,
+        key=loaded.private_pem(),
         alg=Algorithm.Ed25519,
     )
 

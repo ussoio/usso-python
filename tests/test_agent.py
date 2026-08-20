@@ -10,6 +10,7 @@ from usso.utils.agent import (
     generate_agent_jwt,
     get_agent_token,
     get_agent_token_async,
+    kid_from_verify_key,
 )
 
 
@@ -46,6 +47,36 @@ def test_generate_agent_jwt_kid_without_agent_id(
     payload = parsed.unverified_payload
     assert isinstance(payload, dict)
     assert "iss" not in payload
+    assert parsed.unverified_header["kid"] == key.kid
+
+
+def test_generate_agent_jwt_kid_matches_verify_key() -> None:
+    """Header kid matches USSO server kid_from_verify_key(public PEM)."""
+    key = algorithms.EdDSAKey.generate()
+    public_pem = key.public_pem().decode()
+    jwt = generate_agent_jwt(
+        scopes=["read:users"],
+        aud="https://usso.example",
+        private_key=key.private_pem().decode(),
+    )
+    parsed = UnverifiedJWT(token=jwt)
+    assert parsed.unverified_header["kid"] == kid_from_verify_key(public_pem)
+    assert parsed.unverified_header["kid"] == key.kid
+
+
+def test_generate_agent_jwt_kid_with_escaped_pem_env(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    r"""Literal \\n PEM env values still produce the correct kid."""
+    monkeypatch.delenv("AGENT_ID", raising=False)
+    key = algorithms.EdDSAKey.generate()
+    escaped = key.private_pem().decode().replace("\n", "\\n")
+    jwt = generate_agent_jwt(
+        scopes=["read:users"],
+        aud="https://usso.example",
+        private_key=escaped,
+    )
+    parsed = UnverifiedJWT(token=jwt)
     assert parsed.unverified_header["kid"] == key.kid
 
 

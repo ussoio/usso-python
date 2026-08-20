@@ -168,6 +168,8 @@ def test_generate_agent_jwt_bytes_key(
     test_key: AbstractKey,
 ) -> None:
     """generate_agent_jwt accepts a raw bytes private key."""
+    from usso_jwt.schemas import UnverifiedJWT
+
     from src.usso.utils.agent import generate_agent_jwt
 
     der = test_key.private_der()
@@ -177,7 +179,9 @@ def test_generate_agent_jwt_bytes_key(
         agent_id="agent-1",
         private_key=der,
     )
+    parsed = UnverifiedJWT(token=jwt)
     assert len(jwt.split(".")) == 3
+    assert parsed.unverified_header["kid"] == test_key.kid
 
 
 def test_get_authorization_scheme_param_none() -> None:
