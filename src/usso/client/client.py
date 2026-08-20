@@ -302,8 +302,9 @@ class UssoClient(httpx.Client, BaseUssoClient):
         """
         Extract scopes using the module-level `payload_scopes` helper.
 
-        Tests patch `usso.client.client.payload_scopes`, so this indirection keeps
-        the patch effective without changing the BaseUssoClient behavior.
+        Tests patch `usso.client.client.payload_scopes`, so this
+        indirection keeps the patch effective without changing
+        the BaseUssoClient behavior.
         """
         return payload_scopes(self.access_token)
 

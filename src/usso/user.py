@@ -208,34 +208,18 @@ class UserData(BaseModel):
             dict: Dictionary representation of the model.
 
         """
-        try:
-            return super().model_dump(
-                mode=mode,
-                include=include,
-                exclude=exclude,
-                context=context,
-                by_alias=by_alias,
-                exclude_unset=exclude_unset,
-                exclude_defaults=exclude_defaults,
-                exclude_none=exclude_none,
-                exclude_computed_fields=exclude_computed_fields,
-                round_trip=round_trip,
-                warnings=warnings,
-                fallback=fallback,
-                serialize_as_any=serialize_as_any,
-                polymorphic_serialization=polymorphic_serialization,
-            )
-        except TypeError:
-            return super().model_dump(
-                mode=mode,
-                include=include,
-                exclude=exclude,
-                context=context,
-                by_alias=by_alias,
-                exclude_unset=exclude_unset,
-                exclude_defaults=exclude_defaults,
-                exclude_none=exclude_none,
-                round_trip=round_trip,
-                warnings=warnings,
-                fallback=fallback,
-            )
+        _ = (exclude_computed_fields, polymorphic_serialization)
+        return super().model_dump(
+            mode=mode,
+            include=include,
+            exclude=exclude,
+            context=context,
+            by_alias=by_alias,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+            exclude_none=exclude_none,
+            round_trip=round_trip,
+            warnings=warnings,
+            fallback=fallback,
+            serialize_as_any=serialize_as_any,
+        )
