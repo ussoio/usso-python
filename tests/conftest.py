@@ -1,5 +1,6 @@
 """Shared pytest fixtures for JWT testing."""
 
+import importlib
 import os
 import time
 from collections.abc import AsyncIterator
@@ -47,12 +48,15 @@ async def _dispose_lite_database() -> AsyncIterator[None]:
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_debugpy() -> None:
-    """Set up debugpy for remote debugging."""
-    if os.getenv("DEBUGPY", "False").lower() in ("true", "1", "yes"):
-        import debugpy  # ruff: ignore[debugger]
-
-        debugpy.listen(("127.0.0.1", 3020))  # ruff: ignore[debugger]
-        debugpy.wait_for_client()  # ruff: ignore[debugger]
+    """Attach debugpy when DEBUGPY is set; skip if the extra is missing."""
+    if os.getenv("DEBUGPY", "False").lower() not in ("true", "1", "yes"):
+        return
+    try:
+        debugpy = importlib.import_module("debugpy")
+    except ImportError:
+        return
+    debugpy.listen(("127.0.0.1", 3020))
+    debugpy.wait_for_client()
 
 
 @pytest.fixture(scope="session")
