@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from src.usso.scope_catalog import (
+from usso.scope_catalog import (
     register_scope_catalog,
     scopes_from_resource_paths,
     scopes_from_routers,
@@ -67,7 +67,7 @@ async def test_register_scope_catalog_skips_without_credentials(
     """Missing credentials skip the push without calling HTTP."""
     monkeypatch.delenv("SCOPE_CATALOG_CLIENT_ID", raising=False)
     monkeypatch.delenv("SCOPE_CATALOG_CLIENT_SECRET", raising=False)
-    with mock.patch("src.usso.scope_catalog.httpx.AsyncClient") as client_cls:
+    with mock.patch("usso.scope_catalog.httpx.AsyncClient") as client_cls:
         ok = await register_scope_catalog(
             service="media",
             scopes=[{"scope": "read:file/media/files"}],
@@ -95,7 +95,7 @@ async def test_register_scope_catalog_puts_payload() -> None:
     client.__aexit__.return_value = None
 
     with mock.patch(
-        "src.usso.scope_catalog.httpx.AsyncClient", return_value=client
+        "usso.scope_catalog.httpx.AsyncClient", return_value=client
     ):
         ok = await register_scope_catalog(
             service="media",

@@ -6,22 +6,22 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from src.usso.enums import AuthIdentifier, AuthSecret
-from src.usso.exceptions import USSOException
-from src.usso.lite import (
+from usso.enums import AuthIdentifier, AuthSecret
+from usso.exceptions import USSOException
+from usso.lite import (
     EXCEPTION_HANDLERS,
     LiteAuth,
     LiteConfig,
     create_lite_router,
 )
-from src.usso.lite.database import configure, get_session, init_db
-from src.usso.lite.schemas import Identifier, LoginRequest
+from usso.lite.database import configure, get_session, init_db
+from usso.lite.schemas import Identifier, LoginRequest
 
 
 @pytest.fixture
 async def lite_setup() -> tuple[LiteConfig, LiteAuth]:
     """Create a fresh in-memory LiteAuth instance and configure the DB."""
-    from src.usso.lite.database import dispose
+    from usso.lite.database import dispose
 
     await dispose()
     cfg = LiteConfig(

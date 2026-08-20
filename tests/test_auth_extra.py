@@ -10,11 +10,11 @@ from usso_jwt import sign
 from usso_jwt.algorithms import EdDSAKey
 from usso_jwt.schemas import JWT
 
-from src.usso import UssoAuth
-from src.usso.auth import _coerce_user_data
-from src.usso.config import APIHeaderConfig, AuthConfig
-from src.usso.exceptions import USSOException
-from src.usso.user import UserData
+from usso import UssoAuth
+from usso.auth import _coerce_user_data
+from usso.config import APIHeaderConfig, AuthConfig
+from usso.exceptions import USSOException
+from usso.user import UserData
 
 
 def _signed_token(**claims: object) -> str:
@@ -240,7 +240,7 @@ def test_user_data_from_api_key_remote(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """user_data_from_api_key uses the remote verify endpoint."""
-    import src.usso.auth as auth_module
+    import usso.auth as auth_module
 
     monkeypatch.setattr(
         auth_module,
@@ -256,7 +256,7 @@ async def test_user_data_from_api_key_async_verifiers(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """user_data_from_api_key_async uses async then sync verifiers."""
-    import src.usso.auth as auth_module
+    import usso.auth as auth_module
 
     async def _async_verify(key: str) -> UserData:
         return UserData(sub=key)

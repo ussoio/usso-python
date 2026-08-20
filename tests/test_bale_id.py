@@ -2,8 +2,8 @@
 
 from datetime import UTC, datetime
 
-from src.usso.enums import AuthIdentifier
-from src.usso.schemas import UserResponse
+from usso.enums import AuthIdentifier
+from usso.schemas import UserResponse
 
 
 def test_bale_id_enum_value() -> None:

@@ -33,14 +33,14 @@ try:
         )
         django.setup()
 except ImportError:
-    django = None
+    pass
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _dispose_lite_database() -> AsyncIterator[None]:
     """Dispose the global USSO Lite engine so its worker threads exit."""
     yield
-    from src.usso.lite.database import dispose
+    from usso.lite.database import dispose
 
     await dispose()
 

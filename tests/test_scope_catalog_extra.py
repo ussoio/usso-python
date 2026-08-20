@@ -3,8 +3,8 @@
 import httpx
 import pytest
 
-from src.usso import scope_catalog as sc
-from src.usso.scope_catalog import (
+from usso import scope_catalog as sc
+from usso.scope_catalog import (
     fetch_client_credentials_token,
     put_scope_catalog,
     register_scope_catalog,

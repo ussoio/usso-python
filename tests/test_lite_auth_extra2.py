@@ -6,12 +6,12 @@ import pytest
 from sqlalchemy import delete as _delete
 from usso_jwt.algorithms import EdDSAKey
 
-from src.usso.enums import AuthIdentifier, AuthSecret
-from src.usso.exceptions import USSOException
-from src.usso.lite import LiteAuth, LiteConfig
-from src.usso.lite.database import configure, dispose, get_session, init_db
-from src.usso.lite.models import LocalSession
-from src.usso.lite.schemas import Identifier, LoginRequest
+from usso.enums import AuthIdentifier, AuthSecret
+from usso.exceptions import USSOException
+from usso.lite import LiteAuth, LiteConfig
+from usso.lite.database import configure, dispose, get_session, init_db
+from usso.lite.models import LocalSession
+from usso.lite.schemas import Identifier, LoginRequest
 
 
 @pytest.fixture
@@ -183,7 +183,7 @@ async def test_refresh_with_expired_session(
         )
         from datetime import timedelta
 
-        from src.usso.lite.base import _utcnow
+        from usso.lite.base import _utcnow
 
         db_session = (
             (

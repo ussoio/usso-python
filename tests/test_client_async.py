@@ -12,8 +12,8 @@ from usso_jwt.algorithms import AbstractKey, EdDSAKey
 from usso_jwt.config import JWTConfig
 from usso_jwt.schemas import JWT
 
-from src.usso.client import AsyncUssoClient
-from src.usso.utils import agent
+from usso.client import AsyncUssoClient
+from usso.utils import agent
 
 
 def _response(

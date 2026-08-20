@@ -13,10 +13,10 @@ from usso_jwt import sign
 from usso_jwt.algorithms import AbstractKey
 from usso_jwt.utils import b64url_encode
 
-from src.usso import UserData
-from src.usso.config import APIHeaderConfig, AuthConfig
-from src.usso.exceptions import PermissionDenied, USSOException
-from src.usso.integrations.fastapi import (
+from usso import UserData
+from usso.config import APIHeaderConfig, AuthConfig
+from usso.exceptions import PermissionDenied, USSOException
+from usso.integrations.fastapi import (
     USSOAuthentication,
     usso_exception_handler,
 )
@@ -347,7 +347,7 @@ def test_generate_agent_jwt_requires_credentials(
     """generate_agent_jwt raises when credentials are missing."""
     monkeypatch.delenv("AGENT_ID", raising=False)
     monkeypatch.delenv("AGENT_PRIVATE_KEY", raising=False)
-    from src.usso.utils.agent import generate_agent_jwt
+    from usso.utils.agent import generate_agent_jwt
 
     with pytest.raises(ValueError):
         generate_agent_jwt(scopes=["read:users"], aud="https://usso.uln.me")
@@ -359,7 +359,7 @@ def test_generate_agent_jwt_with_key(
     """generate_agent_jwt produces a signed JWT when a key is provided."""
     monkeypatch.delenv("AGENT_ID", raising=False)
     monkeypatch.delenv("AGENT_PRIVATE_KEY", raising=False)
-    from src.usso.utils.agent import generate_agent_jwt
+    from usso.utils.agent import generate_agent_jwt
 
     pem = test_key.private_pem().decode()
     jwt = generate_agent_jwt(
@@ -374,7 +374,7 @@ def test_generate_agent_jwt_with_key(
 
 def test_get_agent_token_sync(monkeypatch: pytest.MonkeyPatch) -> None:
     """get_agent_token exchanges an agent JWT for an access token."""
-    import src.usso.utils.agent as agent_module
+    import usso.utils.agent as agent_module
 
     monkeypatch.setattr(httpx, "Client", _FakeSyncClient)
     token = agent_module.get_agent_token("some.jwt.token")
@@ -383,7 +383,7 @@ def test_get_agent_token_sync(monkeypatch: pytest.MonkeyPatch) -> None:
 
 async def test_get_agent_token_async(monkeypatch: pytest.MonkeyPatch) -> None:
     """get_agent_token_async exchanges an agent JWT asynchronously."""
-    import src.usso.utils.agent as agent_module
+    import usso.utils.agent as agent_module
 
     monkeypatch.setattr(httpx, "AsyncClient", _FakeAsyncClient)
     token = await agent_module.get_agent_token_async("some.jwt.token")

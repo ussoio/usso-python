@@ -5,15 +5,15 @@ from typing import Any, cast
 import httpx
 import pytest
 
-from src.usso import UserData
-from src.usso.api_key import (
+from usso import UserData
+from usso.api_key import (
     fetch_api_key_data,
     fetch_api_key_data_async,
 )
-from src.usso.config import AuthConfig, HeaderConfig
-from src.usso.enums import AuthIdentifier
-from src.usso.exceptions import USSOException
-from src.usso.schemas import Identifier, OTPRequest
+from usso.config import AuthConfig, HeaderConfig
+from usso.enums import AuthIdentifier
+from usso.exceptions import USSOException
+from usso.schemas import Identifier, OTPRequest
 
 
 def test_identifier_without_type_passes_through() -> None:

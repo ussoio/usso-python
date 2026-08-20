@@ -11,7 +11,7 @@ from usso_jwt.algorithms import EdDSAKey
 from usso_jwt.config import JWTConfig
 from usso_jwt.schemas import JWT
 
-from src.usso.client import UssoClient
+from usso.client import UssoClient
 
 
 def _make_client(**kwargs: Any) -> UssoClient:

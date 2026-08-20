@@ -6,18 +6,18 @@ from datetime import datetime
 import pytest
 from sqlalchemy import select
 
-from src.usso.config import AuthConfig
-from src.usso.enums import AuthIdentifier, AuthSecret
-from src.usso.lite import LiteAuth, LiteConfig, dependency
-from src.usso.lite.database import (
+from usso.config import AuthConfig
+from usso.enums import AuthIdentifier, AuthSecret
+from usso.lite import LiteAuth, LiteConfig, dependency
+from usso.lite.database import (
     configure,
     dispose,
     ensure_initialized,
     get_session,
     init_db,
 )
-from src.usso.lite.models import LocalSession
-from src.usso.lite.schemas import Identifier, LoginRequest, RegisterRequest
+from usso.lite.models import LocalSession
+from usso.lite.schemas import Identifier, LoginRequest, RegisterRequest
 
 
 @pytest.fixture
@@ -56,7 +56,7 @@ def test_auth_config_parse_from_json_string() -> None:
 # ---------------------------------------------------------------------------
 def test_lite_identifier_infers_type() -> None:
     """Identifier infers the identifier type when none is given."""
-    from src.usso.lite.schemas import Identifier as LiteIdentifier
+    from usso.lite.schemas import Identifier as LiteIdentifier
 
     ident = LiteIdentifier(identifier="a@b.com")
     assert ident.type == AuthIdentifier.EMAIL
@@ -96,7 +96,7 @@ def test_session_expire_at_none() -> None:
 # ---------------------------------------------------------------------------
 def test_entity_dump_branches() -> None:
     """BaseEntity.dump honours include, exclude and datetime values."""
-    from src.usso.lite.base import BaseEntity
+    from usso.lite.base import BaseEntity
 
     class _Demo(BaseEntity):
         __abstract__ = True

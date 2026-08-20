@@ -28,7 +28,7 @@ class USSOException(Exception):  # ruff: ignore[error-suffix-on-exception-name]
         status_code: int,
         error_code: str,
         detail: str | None = None,
-        message: dict | None = None,
+        message: dict[str, str] | str | object | None = None,
         **kwargs: dict,
     ) -> None:
         """
@@ -92,7 +92,7 @@ class PermissionDenied(USSOException):
         self,
         error_code: str = "permission_denied",
         detail: str | None = None,
-        message: dict | None = None,
+        message: dict[str, str] | str | object | None = None,
         **kwargs: dict,
     ) -> None:
         """

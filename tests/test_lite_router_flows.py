@@ -3,12 +3,12 @@
 import pytest
 from starlette.requests import Request
 
-from src.usso.enums import AuthIdentifier, AuthSecret
-from src.usso.exceptions import USSOException
-from src.usso.lite import LiteAuth, LiteConfig
-from src.usso.lite import router as router_mod
-from src.usso.lite.database import configure, dispose, get_session, init_db
-from src.usso.lite.schemas import (
+from usso.enums import AuthIdentifier, AuthSecret
+from usso.exceptions import USSOException
+from usso.lite import LiteAuth, LiteConfig
+from usso.lite import router as router_mod
+from usso.lite.database import configure, dispose, get_session, init_db
+from usso.lite.schemas import (
     ChangePasswordRequest,
     Identifier,
     LoginRequest,

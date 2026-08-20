@@ -12,9 +12,9 @@ from usso_jwt.algorithms import AbstractKey, EdDSAKey
 from usso_jwt.config import JWTConfig
 from usso_jwt.schemas import JWT
 
-from src.usso.client import UssoClient
-from src.usso.enums import AuthIdentifier
-from src.usso.utils import agent
+from usso.client import UssoClient
+from usso.enums import AuthIdentifier
+from usso.utils import agent
 
 
 def _user_payload(uid: str = "u1") -> dict:

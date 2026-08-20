@@ -5,8 +5,8 @@ import sys
 import pytest
 from usso_jwt.algorithms import AbstractKey
 
-from src.usso.enums import AuthIdentifier
-from src.usso.utils import validators
+from usso.enums import AuthIdentifier
+from usso.utils import validators
 
 
 def test_validate_phone_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -170,7 +170,7 @@ def test_generate_agent_jwt_bytes_key(
     """generate_agent_jwt accepts a raw bytes private key."""
     from usso_jwt.schemas import UnverifiedJWT
 
-    from src.usso.utils.agent import generate_agent_jwt
+    from usso.utils.agent import generate_agent_jwt
 
     der = test_key.private_der()
     jwt = generate_agent_jwt(
@@ -186,7 +186,7 @@ def test_generate_agent_jwt_bytes_key(
 
 def test_get_authorization_scheme_param_none() -> None:
     """get_authorization_scheme_param handles a missing header."""
-    from src.usso.utils.string_utils import get_authorization_scheme_param
+    from usso.utils.string_utils import get_authorization_scheme_param
 
     assert get_authorization_scheme_param(None) == ("", "")
 
@@ -196,7 +196,7 @@ def test_exception_handler_generic() -> None:
     from fastapi.responses import JSONResponse
     from starlette.requests import Request
 
-    from src.usso.integrations.fastapi.handler import usso_exception_handler
+    from usso.integrations.fastapi.handler import usso_exception_handler
 
     scope: dict[str, object] = {
         "type": "http",

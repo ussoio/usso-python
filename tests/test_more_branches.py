@@ -10,17 +10,17 @@ from usso_jwt.algorithms import AbstractKey, EdDSAKey
 from usso_jwt.config import JWTConfig
 from usso_jwt.schemas import JWT
 
-from src.usso import UserData
-from src.usso.client import AsyncUssoClient, UssoClient
-from src.usso.exceptions import PermissionDenied
-from src.usso.lite import LiteAuth, LiteConfig
-from src.usso.lite.database import (
+from usso import UserData
+from usso.client import AsyncUssoClient, UssoClient
+from usso.exceptions import PermissionDenied
+from usso.lite import LiteAuth, LiteConfig
+from usso.lite.database import (
     _secure_sqlite_file,
     configure,
     dispose,
     init_db,
 )
-from src.usso.utils import validators as main_validators
+from usso.utils import validators as main_validators
 
 
 def _response(json_data: dict) -> httpx.Response:
@@ -128,7 +128,7 @@ def test_validate_username_empty_bad_word() -> None:
 
 def test_lite_dump_missing_attribute() -> None:
     """BaseEntity.dump skips fields that are not attributes."""
-    from src.usso.lite.base import BaseEntity
+    from usso.lite.base import BaseEntity
 
     class _Demo(BaseEntity):
         __abstract__ = True
@@ -165,8 +165,8 @@ def test_authorize_denies_when_unauthenticated() -> None:
     """The authorize dependency rejects requests without a valid token."""
     from starlette.requests import Request
 
-    from src.usso.config import APIHeaderConfig, AuthConfig
-    from src.usso.integrations.fastapi import USSOAuthentication
+    from usso.config import APIHeaderConfig, AuthConfig
+    from usso.integrations.fastapi import USSOAuthentication
 
     auth = USSOAuthentication(
         jwt_config=AuthConfig(

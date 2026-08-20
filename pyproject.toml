@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso"
-version = "0.32.6"
+version = "0.32.7"
 description = "A plug-and-play client for integrating universal single sign-on (SSO) with Python frameworks, enabling secure and seamless authentication across microservices."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -114,7 +114,11 @@ ignore_missing_imports = true
 check_untyped_defs = false
 disallow_untyped_defs = false
 explicit_package_bases = true
-mypy_path = ["."]
+mypy_path = ["src"]
+exclude = ["src/"]
+
+[tool.ty.environment]
+extra-paths = ["src"]
 
 [dependency-groups]
 dev = [

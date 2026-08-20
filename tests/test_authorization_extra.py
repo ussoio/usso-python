@@ -4,8 +4,8 @@ from typing import Any, cast
 
 import pytest
 
-from src.usso import authorization
-from src.usso.authorization import (
+from usso import authorization
+from usso.authorization import (
     _match_path_parts,
     _normalize_path,
     get_common_scopes,

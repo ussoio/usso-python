@@ -5,16 +5,16 @@ from typing import Any, cast
 
 import pytest
 
-from src.usso.enums import AuthIdentifier
-from src.usso.exceptions import USSOException
-from src.usso.lite import (
+from usso.enums import AuthIdentifier
+from usso.exceptions import USSOException
+from usso.lite import (
     LiteAuth,
     LiteConfig,
     dependency,
     validators,
 )
-from src.usso.lite.base import BaseEntity
-from src.usso.lite.database import _secure_sqlite_file
+from usso.lite.base import BaseEntity
+from usso.lite.database import _secure_sqlite_file
 
 
 def test_lite_validators_email_errors() -> None:
