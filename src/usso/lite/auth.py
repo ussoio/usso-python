@@ -44,6 +44,14 @@ from .models import (
     LocalUser,
     LocalUserIdentifier,
 )
+from .oidc import (
+    OidcStateStore,
+    build_oidc_authorization_url,
+    decode_id_token_payload,
+    exchange_oidc_code,
+    fetch_oidc_userinfo,
+    parse_oidc_callback,
+)
 from .schemas import (
     Identifier,
     LoginRequest,
@@ -104,6 +112,30 @@ def _raise(status_code: int, error_code: str, en: str, fa: str) -> NoReturn:
     )
 
 
+def _coerce_bool(value: object) -> bool | None:
+    """Normalize OIDC boolean-ish claim values."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() in ("true", "1")
+    return None
+
+
+def _email_from_claims(
+    claims: dict[str, Any],
+) -> tuple[str | None, bool | None, str | None]:
+    """Pull email / verified / name from a userinfo or id_token dict."""
+    email: str | None = None
+    raw_email = claims.get("email")
+    if isinstance(raw_email, str) and raw_email.strip():
+        email = raw_email.strip()
+    name: str | None = None
+    raw_name = claims.get("name")
+    if isinstance(raw_name, str) and raw_name.strip():
+        name = raw_name.strip()
+    return email, _coerce_bool(claims.get("email_verified")), name
+
+
 def _infer_identifier_type(value: str) -> AuthIdentifier:
     """Infer the identifier type (email, phone or username) from a value."""
     try:
@@ -133,6 +165,7 @@ class LiteAuth:
         self._dummy_password_hash = self.hasher.hash_password(
             secrets.token_urlsafe(32)
         )
+        self._oidc_states = OidcStateStore()
 
     # ------------------------------------------------------------------
     # Keys
@@ -654,6 +687,221 @@ class LiteAuth:
             session_id=db_session.uid,
             amr=amr,
             acr=acr,
+            identifiers=identifiers,
+            access_exp=access_exp,
+            refresh_exp=refresh_exp,
+        )
+        db_session.jti = refresh_jti
+        await session.commit()
+        return pair, user
+
+    def start_oidc(self, provider: str, state_store: OidcStateStore) -> dict:
+        """Begin an OIDC paste/localhost-redirect login for ``provider``."""
+        provider_config = self.config.oidc_providers.get(provider)
+        if provider_config is None:
+            _raise(
+                404,
+                "oidc_provider_not_found",
+                f"Unknown OIDC provider: {provider}",
+                f"ارائه‌دهنده OIDC ناشناخته است: {provider}",
+            )
+        state = state_store.create(provider)
+        return {
+            "provider": provider,
+            "authorization_url": build_oidc_authorization_url(
+                provider_config, state
+            ),
+            "state": state,
+            "redirect_uri": provider_config.redirect_uri,
+        }
+
+    async def _oidc_resolve_tokens(
+        self,
+        provider: str,
+        *,
+        callback: str,
+        state: str | None,
+        state_store: OidcStateStore,
+    ) -> dict[str, Any]:
+        """Parse callback, validate CSRF state, and obtain a token response."""
+        provider_config = self.config.oidc_providers[provider]
+        parsed = parse_oidc_callback(callback)
+        if parsed.token is not None:
+            return parsed.token
+
+        csrf_state = state or parsed.state
+        if not csrf_state:
+            _raise(
+                400,
+                "oidc_state_invalid",
+                "OIDC state is required.",
+                "مقدار state برای OIDC الزامی است.",
+            )
+        if not state_store.consume(csrf_state, provider=provider):
+            _raise(
+                400,
+                "oidc_state_invalid",
+                "OIDC state is invalid or expired.",
+                "مقدار state نامعتبر یا منقضی است.",
+            )
+        if not parsed.code:
+            _raise(
+                400,
+                "oidc_callback_invalid",
+                "Callback is missing an authorization code.",
+                "کد مجوز در مقدار بازگشتی موجود نیست.",
+            )
+        return await exchange_oidc_code(provider_config, parsed.code)
+
+    async def _oidc_resolve_identity(
+        self,
+        provider: str,
+        token_response: dict[str, Any],
+    ) -> tuple[str, str | None]:
+        """
+        Resolve email (+ optional name) from userinfo / id_token.
+
+        Prefer userinfo. ``id_token`` fallback decodes the JWT payload only
+        (no JWKS signature verification) for minimal v1 identity login.
+        """
+        provider_config = self.config.oidc_providers[provider]
+        access_token = token_response.get("access_token")
+        if not access_token or not isinstance(access_token, str):
+            _raise(
+                400,
+                "oidc_exchange_failed",
+                "OIDC token response missing access_token.",
+                "پاسخ توکن OIDC فاقد access_token است.",
+            )
+
+        userinfo = await fetch_oidc_userinfo(provider_config, access_token)
+        email, email_verified, name = _email_from_claims(userinfo)
+
+        if email is None:
+            id_token = token_response.get("id_token")
+            if isinstance(id_token, str) and id_token:
+                claims = decode_id_token_payload(id_token)
+                email, email_verified, id_name = _email_from_claims(claims)
+                if name is None:
+                    name = id_name
+
+        if not email:
+            _raise(
+                400,
+                "oidc_email_missing",
+                "OIDC provider did not return an email address.",
+                "ارائه‌دهنده OIDC آدرس ایمیل برنگرداند.",
+            )
+        if email_verified is False:
+            _raise(
+                403,
+                "oidc_email_not_verified",
+                "OIDC email address is not verified.",
+                "آدرس ایمیل OIDC تأیید نشده است.",
+            )
+        return email, name
+
+    async def _oidc_find_or_create_user(
+        self,
+        *,
+        email: str,
+        name: str | None,
+        session: AsyncSession,
+    ) -> LocalUser:
+        """Find LocalUser by email, or create one when signup is allowed."""
+        identifier = Identifier(type=AuthIdentifier.EMAIL, identifier=email)
+        user = await self.find_user(identifier, session)
+        if user is not None:
+            return user
+        if not self.config.oidc_allow_signup:
+            _raise(
+                403,
+                "oidc_user_not_found",
+                "No local account exists for this OIDC email.",
+                "حسابی با این ایمیل OIDC وجود ندارد.",
+            )
+        return await self.create_user(
+            identifier=identifier,
+            password=None,
+            session=session,
+            name=name,
+            roles=list(
+                self.config.oidc_default_roles or self.config.default_roles
+            ),
+            scopes=list(self.config.default_scopes),
+        )
+
+    async def login_with_oidc(
+        self,
+        provider: str,
+        *,
+        callback: str,
+        state: str | None,
+        state_store: OidcStateStore,
+        session: AsyncSession,
+        user_agent: str | None = None,
+        ip: str | None = None,
+    ) -> tuple[TokenPair, LocalUser]:
+        """
+        Complete OIDC identity login from a pasted callback.
+
+        Exchanges the authorization code (or accepts a pasted token JSON),
+        resolves email via userinfo (preferred) or an unverified ``id_token``
+        payload fallback, then finds or optionally creates a LocalUser and
+        issues the same TokenPair shape as password login.
+        """
+        if provider not in self.config.oidc_providers:
+            _raise(
+                404,
+                "oidc_provider_not_found",
+                f"Unknown OIDC provider: {provider}",
+                f"ارائه‌دهنده OIDC ناشناخته است: {provider}",
+            )
+
+        token_response = await self._oidc_resolve_tokens(
+            provider,
+            callback=callback,
+            state=state,
+            state_store=state_store,
+        )
+        email, name = await self._oidc_resolve_identity(
+            provider, token_response
+        )
+        user = await self._oidc_find_or_create_user(
+            email=email, name=name, session=session
+        )
+
+        if not user.is_active or user.activation_status != "active":
+            _raise(
+                401,
+                "user_not_active",
+                "This account is not active.",
+                "این حساب کاربری فعال نیست.",
+            )
+
+        amr = [AuthSecret.OAUTH.value]
+        now = int(time.time())
+        access_exp = now + self.config.access_token_minutes * 60
+        refresh_exp = now + self.config.refresh_token_days * 24 * 60 * 60
+        identifiers = await self._get_identifiers(user.uid, session)
+
+        db_session = LocalSession(
+            user_id=user.uid,
+            scopes=user.scopes,
+            roles=user.roles,
+            amr=amr,
+            max_age_minutes=self.config.session_max_age_minutes,
+            user_agent=user_agent,
+            ip=ip,
+        )
+        session.add(db_session)
+        await session.flush()
+
+        pair, refresh_jti = self.issue_tokens(
+            user=user,
+            session_id=db_session.uid,
+            amr=amr,
+            acr=ACR_BASIC,
             identifiers=identifiers,
             access_exp=access_exp,
             refresh_exp=refresh_exp,

@@ -16,6 +16,9 @@ __all__ = [
     "ChangePasswordRequest",
     "Identifier",
     "LoginRequest",
+    "OidcCompleteRequest",
+    "OidcStartRequest",
+    "OidcStartResponse",
     "RefreshRequest",
     "RegisterRequest",
     "RequestOTPRequest",
@@ -97,6 +100,29 @@ class ChangePasswordRequest(BaseModel):
 
     old_password: str | None = Field(default=None)
     new_password: str = Field(min_length=8, max_length=1024)
+
+
+class OidcStartRequest(BaseModel):
+    """Begin an OIDC paste/localhost-redirect login."""
+
+    provider: str = Field(min_length=1, max_length=64)
+
+
+class OidcStartResponse(BaseModel):
+    """Authorize URL and CSRF state for the OIDC paste flow."""
+
+    provider: str
+    authorization_url: str
+    state: str
+    redirect_uri: str
+
+
+class OidcCompleteRequest(BaseModel):
+    """Complete OIDC login with a pasted callback URL/code."""
+
+    provider: str = Field(min_length=1, max_length=64)
+    callback: str = Field(min_length=1, max_length=8192)
+    state: str | None = Field(default=None, max_length=512)
 
 
 class UserCreateRequest(Identifier):

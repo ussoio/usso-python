@@ -7,11 +7,27 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-__all__ = ["LiteConfig"]
+__all__ = ["LiteConfig", "OidcProviderConfig"]
 
 OtpSender = Callable[
     [str, str, str], Awaitable[Any]
 ]  # (identifier_type, identifier, code) -> delivered
+
+
+class OidcProviderConfig(BaseModel):
+    """OIDC identity provider settings (openid/email/profile only)."""
+
+    client_id: str
+    client_secret: str
+    redirect_uri: str = "http://localhost"
+    authorize_url: str = "https://accounts.google.com/o/oauth2/v2/auth"
+    token_url: str = (
+        "https://oauth2.googleapis.com/token"  # ruff: ignore[hardcoded-password-string]
+    )
+    userinfo_url: str = "https://openidconnect.googleapis.com/v1/userinfo"
+    scopes: list[str] = Field(
+        default_factory=lambda: ["openid", "email", "profile"]
+    )
 
 
 class LiteConfig(BaseModel):
@@ -36,6 +52,9 @@ class LiteConfig(BaseModel):
             OTP code is invalidated.
         otp_sender: Optional async callback used to deliver OTP codes.
             Receives ``(identifier_type, identifier, code)``.
+        oidc_providers: Named OIDC identity providers (e.g. ``google``).
+        oidc_allow_signup: Create a LocalUser on first OIDC login when True.
+        oidc_default_roles: Roles applied when OIDC signup creates a user.
     """
 
     database_url: str = Field(default="sqlite+aiosqlite:///./usso_lite.db")
@@ -64,3 +83,6 @@ class LiteConfig(BaseModel):
     registration_window_seconds: int = Field(default=3600, ge=1)
     expose_otp_in_response: bool = Field(default=False)
     otp_sender: OtpSender | None = Field(default=None, exclude=True)
+    oidc_providers: dict[str, OidcProviderConfig] = Field(default_factory=dict)
+    oidc_allow_signup: bool = Field(default=False)
+    oidc_default_roles: list[str] = Field(default_factory=list)

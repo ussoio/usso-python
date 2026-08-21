@@ -1290,7 +1290,7 @@ wheels = [
 
 [[package]]
 name = "usso"
-version = "0.32.9"
+version = "0.33.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiocache" },

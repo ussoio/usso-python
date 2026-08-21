@@ -20,6 +20,9 @@ from .schemas import (
     ChangePasswordRequest,
     Identifier,
     LoginRequest,
+    OidcCompleteRequest,
+    OidcStartRequest,
+    OidcStartResponse,
     RefreshRequest,
     RegisterRequest,
     RequestOTPRequest,
@@ -199,6 +202,34 @@ async def _change_password_flow(
         new_password=payload.new_password,
         session=session,
     )
+
+
+async def _oidc_start_flow(
+    auth: LiteAuth,
+    payload: OidcStartRequest,
+) -> OidcStartResponse:
+    """Begin OIDC identity login and return the authorize URL."""
+    result = auth.start_oidc(payload.provider, auth._oidc_states)
+    return OidcStartResponse(**result)
+
+
+async def _oidc_complete_flow(
+    auth: LiteAuth,
+    payload: OidcCompleteRequest,
+    request: Request,
+    session: AsyncSession,
+) -> AuthResponse:
+    """Complete OIDC identity login from a pasted callback."""
+    pair, user = await auth.login_with_oidc(
+        payload.provider,
+        callback=payload.callback,
+        state=payload.state,
+        state_store=auth._oidc_states,
+        session=session,
+        user_agent=request.headers.get("user-agent"),
+        ip=request.client.host if request.client else None,
+    )
+    return await _build_auth_response(auth, user, pair, session)
 
 
 async def _me_flow(
@@ -387,6 +418,32 @@ def _register_auth_routes(
         return await _change_password_flow(auth, user, payload, session)
 
 
+def _register_oidc_routes(
+    router: APIRouter,
+    database: LiteDatabase,
+    router_auth: Callable[[], LiteAuth],
+) -> None:
+    """Register public OIDC paste-flow endpoints."""
+    auth_dep = Depends(router_auth)
+    session_dep = Depends(database.get_session)
+
+    @router.post("/auth/oidc/start", response_model=OidcStartResponse)
+    async def oidc_start(
+        payload: OidcStartRequest,
+        auth: LiteAuth = auth_dep,
+    ) -> OidcStartResponse:
+        return await _oidc_start_flow(auth, payload)
+
+    @router.post("/auth/oidc/complete", response_model=AuthResponse)
+    async def oidc_complete(
+        payload: OidcCompleteRequest,
+        request: Request,
+        auth: LiteAuth = auth_dep,
+        session: AsyncSession = session_dep,
+    ) -> AuthResponse:
+        return await _oidc_complete_flow(auth, payload, request, session)
+
+
 def _register_user_routes(
     router: APIRouter,
     auth: LiteAuth,
@@ -510,6 +567,7 @@ def create_lite_router(
     _register_auth_routes(
         router, config, auth, database, router_auth, current_user
     )
+    _register_oidc_routes(router, database, router_auth)
     _register_user_routes(
         router, auth, database, router_auth, current_user, admin_guard
     )

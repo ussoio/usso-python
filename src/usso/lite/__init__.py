@@ -10,7 +10,7 @@ requires switching the token issuer.
 
 from ..integrations.fastapi.handler import EXCEPTION_HANDLERS
 from .auth import LiteAuth
-from .config import LiteConfig
+from .config import LiteConfig, OidcProviderConfig
 from .database import get_session, init_db
 from .dependency import get_current_user
 from .router import create_lite_router
@@ -19,6 +19,7 @@ __all__ = [
     "EXCEPTION_HANDLERS",
     "LiteAuth",
     "LiteConfig",
+    "OidcProviderConfig",
     "create_lite_router",
     "get_current_user",
     "get_session",
