@@ -84,11 +84,13 @@ class TestDetermineIdentifierType:
 
     def test_determine_identifier_type_sub_email(self) -> None:
         """Test determine_identifier_type function with email."""
+        # Prefer a domain with real MX; deliverability is on by default and
+        # example.com / usso.io publish NULL MX (reject mail).
         identifier_type, value = determine_identifier_type({
-            "sub": "user@example.com"
+            "sub": "user@gmail.com"
         })
         assert identifier_type == AuthIdentifier.EMAIL
-        assert value == "user@example.com"
+        assert value == "user@gmail.com"
 
     def test_determine_identifier_invalid(self) -> None:
         """Test determine_identifier_type with an unrecognizable subject."""
@@ -103,10 +105,13 @@ class TestValidators:
     """Test validators."""
 
     def test_validate_email(self) -> None:
-        """Test validate_email function."""
-        # Use a domain with MX records; usso.io no longer accepts mail and
-        # email-validator deliverability checks reject it.
-        is_valid, error, canonical = validate_email("user@example.com")
+        """Test validate_email syntax path without relying on live MX DNS."""
+        # Deliverability is environment-sensitive (NULL MX on example.com /
+        # usso.io). Cover the non-gmail canonical path with DNS checks off.
+        is_valid, error, canonical = validate_email(
+            "user@example.com",
+            check_deliverability=False,
+        )
         assert is_valid is True
         assert error is None
         assert canonical == "user@example.com"
