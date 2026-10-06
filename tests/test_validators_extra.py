@@ -39,9 +39,9 @@ def test_validate_email_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_validate_email_without_dns(monkeypatch: pytest.MonkeyPatch) -> None:
     """validate_email skips deliverability when dnspython is unavailable."""
     monkeypatch.setitem(sys.modules, "dns", None)
-    ok, _error, canonical = validators.validate_email("dev@usso.io")
+    ok, _error, canonical = validators.validate_email("dev@example.com")
     assert ok is True
-    assert canonical == "dev@usso.io"
+    assert canonical == "dev@example.com"
 
 
 def test_validate_phone_invalid_cases() -> None:

@@ -30,7 +30,7 @@ def test_identifier_invalid_value_raises() -> None:
 
 def test_otp_request_email_channel() -> None:
     """OTPRequest defaults the channel to email for email identifiers."""
-    req = OTPRequest(type=AuthIdentifier.EMAIL, identifier="dev@usso.io")
+    req = OTPRequest(type=AuthIdentifier.EMAIL, identifier="dev@example.com")
     assert req.channel_type == "email"
 
 

@@ -85,10 +85,10 @@ class TestDetermineIdentifierType:
     def test_determine_identifier_type_sub_email(self) -> None:
         """Test determine_identifier_type function with email."""
         identifier_type, value = determine_identifier_type({
-            "sub": "user@usso.io"
+            "sub": "user@example.com"
         })
         assert identifier_type == AuthIdentifier.EMAIL
-        assert value == "user@usso.io"
+        assert value == "user@example.com"
 
     def test_determine_identifier_invalid(self) -> None:
         """Test determine_identifier_type with an unrecognizable subject."""
@@ -104,10 +104,12 @@ class TestValidators:
 
     def test_validate_email(self) -> None:
         """Test validate_email function."""
-        is_valid, error, canonical = validate_email("user@usso.io")
+        # Use a domain with MX records; usso.io no longer accepts mail and
+        # email-validator deliverability checks reject it.
+        is_valid, error, canonical = validate_email("user@example.com")
         assert is_valid is True
         assert error is None
-        assert canonical == "user@usso.io"
+        assert canonical == "user@example.com"
 
     def test_validate_gmail(self) -> None:
         """Test validate_email function."""
