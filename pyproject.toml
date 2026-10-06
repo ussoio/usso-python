@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usso"
-version = "0.33.1"
+version = "0.33.2"
 description = "A plug-and-play client for integrating universal single sign-on (SSO) with Python frameworks, enabling secure and seamless authentication across microservices."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -40,7 +40,7 @@ django = ["Django>=3.2"]
 dev = ["check-manifest", "pytest", "pytest_asyncio"]
 test = ["coverage"]
 validator = ["email-validator", "phonenumbers"]
-lite = ["sqlalchemy>=2.0", "aiosqlite>=0.20.0", "argon2-cffi>=23.1.0"]
+lite = ["sqlalchemy[asyncio]>=2.0", "aiosqlite>=0.20.0", "argon2-cffi>=23.1.0"]
 all = [
   "fastapi>=0.65.0",
   "uvicorn[standard]>=0.13.0",
@@ -49,7 +49,7 @@ all = [
   "pytest",
   "pytest_asyncio",
   "coverage",
-  "sqlalchemy>=2.0",
+  "sqlalchemy[asyncio]>=2.0",
   "aiosqlite>=0.20.0",
   "argon2-cffi>=23.1.0",
 ]
