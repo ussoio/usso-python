@@ -179,6 +179,41 @@ async def test_use_agent_token(monkeypatch: pytest.MonkeyPatch) -> None:
     await client.aclose()
 
 
+async def test_use_agent_token_without_agent_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Private key alone is enough; JWT uses kid and omits iss."""
+    from usso_jwt.schemas import UnverifiedJWT
+
+    monkeypatch.delenv("AGENT_ID", raising=False)
+    captured: dict[str, str] = {}
+
+    async def _fake_exchange(jwt: str) -> str:
+        captured["jwt"] = jwt
+        return "agent-AT"
+
+    monkeypatch.setattr(agent, "get_agent_token_async", _fake_exchange)
+    key_pem = _agent_key()
+    client = _make_client(
+        lambda request: _response({}),
+        api_key=None,
+        agent_id=None,
+        agent_private_key=key_pem,
+    )
+    token = await client.use_agent_token(
+        scopes=["read:users"],
+        aud="sso",
+        tenant_id="t1",
+    )
+    assert token == "agent-AT"
+    parsed = UnverifiedJWT(token=captured["jwt"])
+    payload = parsed.unverified_payload
+    assert isinstance(payload, dict)
+    assert "iss" not in payload
+    assert parsed.unverified_header.get("kid")
+    await client.aclose()
+
+
 async def test_get_users() -> None:
     """get_users returns parsed UserResponse items."""
     client = _make_client(

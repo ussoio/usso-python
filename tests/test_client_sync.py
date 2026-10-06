@@ -173,6 +173,40 @@ def test_use_agent_token(monkeypatch: pytest.MonkeyPatch) -> None:
     client.close()
 
 
+def test_use_agent_token_without_agent_id(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Private key alone is enough; JWT uses kid and omits iss."""
+    from usso_jwt.schemas import UnverifiedJWT
+
+    monkeypatch.delenv("AGENT_ID", raising=False)
+    captured: dict[str, str] = {}
+
+    def _fake_exchange(jwt: str) -> str:
+        captured["jwt"] = jwt
+        return "agent-AT"
+
+    monkeypatch.setattr(agent, "get_agent_token", _fake_exchange)
+    client = _make_client(
+        lambda request: httpx.Response(200, json={}),
+        api_key=None,
+        agent_id=None,
+        agent_private_key=_agent_key(),
+    )
+    token = client.use_agent_token(
+        scopes=["read:users"],
+        aud="sso",
+        tenant_id="t1",
+    )
+    assert token == "agent-AT"
+    parsed = UnverifiedJWT(token=captured["jwt"])
+    payload = parsed.unverified_payload
+    assert isinstance(payload, dict)
+    assert "iss" not in payload
+    assert parsed.unverified_header.get("kid")
+    client.close()
+
+
 def test_use_agent_token_missing_credentials() -> None:
     """use_agent_token raises when agent credentials are absent."""
     client = _make_client(lambda request: httpx.Response(200, json={}))

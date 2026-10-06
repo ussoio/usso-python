@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -538,7 +538,7 @@ def create_lite_router(
         return await resolve_current_user(request, session, auth)
 
     @asynccontextmanager
-    async def lifespan(_app: object) -> AsyncIterator[None]:
+    async def lifespan(_app: object) -> AsyncGenerator[None]:
         await database.init_db()
         try:
             yield

@@ -230,13 +230,16 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
             str: The access token obtained from the agent authentication.
 
         Raises:
-            ValueError: If agent_id or private_key are not set.
+            ValueError: If private_key is not set.
+
+        Notes:
+            ``agent_id`` is optional. When omitted, ``generate_agent_jwt``
+            still sets header ``kid`` and USSO resolves the agent by key
+            thumbprint.
 
         """
         if not self.agent_private_key:
             raise ValueError("private_key is required")
-        if not self.agent_id:
-            raise ValueError("agent_id is required")
 
         if not tenant_id:
             agent_response = await self._get_agent()
