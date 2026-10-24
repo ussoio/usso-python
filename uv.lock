@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -1295,7 +1295,7 @@ wheels = [
 
 [[package]]
 name = "usso"
-version = "0.33.4"
+version = "0.33.5"
 source = { editable = "." }
 dependencies = [
     { name = "aiocache" },
@@ -1384,7 +1384,7 @@ requires-dist = [
     { name = "singleton-package" },
     { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'all'", specifier = ">=2.0" },
     { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'lite'", specifier = ">=2.0" },
-    { name = "usso-jwt", specifier = ">=0.2.18" },
+    { name = "usso-jwt", specifier = ">=0.2.19" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'all'", specifier = ">=0.13.0" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'fastapi'", specifier = ">=0.13.0" },
 ]
@@ -1401,7 +1401,7 @@ dev = [
 
 [[package]]
 name = "usso-jwt"
-version = "0.2.18"
+version = "0.2.19"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cachetools" },
@@ -1410,9 +1410,9 @@ dependencies = [
     { name = "json-advanced" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/32/bb/feca3a0530e2c94feda35b0f20f82f01a7eecd2e3715cd5acd290d9a574e/usso_jwt-0.2.18.tar.gz", hash = "sha256:a5333d12996d27c6cc0f11d76ed344ebc4b0c2f1bda1e84dd4afd64fd697bc46", size = 28600, upload-time = "2026-08-19T11:10:43.564Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3a/c1/63c3545d266050b9dc7dd3e5caf76aa7400810449a01422c80b438384a67/usso_jwt-0.2.19.tar.gz", hash = "sha256:908ca43143dfc27141daac49fc087cc44ee6f47f656d7e3ef383ad6682d12431", size = 29301, upload-time = "2026-10-24T12:55:27.373Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/37/1c/07d1927047e91016844ec79c2f324e7653ebc8a4e27c32e1a638c2efda1a/usso_jwt-0.2.18-py3-none-any.whl", hash = "sha256:e31735654ff5587e0af7396e075a4e882a25dfd336de88199999bd3c93303f3c", size = 27224, upload-time = "2026-08-19T11:10:42.601Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/b5/d5d830e102c1b052d25d9eed099687193c4db26fb8ecc3fae4a8950e12ce/usso_jwt-0.2.19-py3-none-any.whl", hash = "sha256:0b32dcef615a5a2213f441f535e5092f5296488cb785af2c9b0d03287ecab6a5", size = 27572, upload-time = "2026-10-24T12:55:26.29Z" },
 ]
 
 [[package]]
