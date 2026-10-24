@@ -127,8 +127,12 @@ class UserData(BaseModel):
                 empty string if neither exists.
 
         """
-        if self.claims and "user_id" in self.claims:
-            return self.claims["user_id"]
+        # Agent JWTs often include an explicit null user_id claim; treat
+        # falsy values as missing so we fall back to `sub`.
+        if self.claims:
+            claim = self.claims.get("user_id")
+            if claim:
+                return claim
         return self.sub or ""
 
     @property

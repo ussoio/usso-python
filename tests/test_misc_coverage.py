@@ -212,6 +212,13 @@ def test_user_data_empty_properties() -> None:
     assert user.phone == ""
 
 
+def test_user_data_null_user_id_falls_back_to_sub() -> None:
+    """Explicit null user_id claims must not hide the JWT subject."""
+    user = UserData(sub="agent-1", user_id=None)
+    assert user.user_id == "agent-1"
+    assert user.uid == "agent-1"
+
+
 def test_user_data_phone_from_claims() -> None:
     """UserData exposes phone from its claims."""
     user = UserData(phone="+989121234567")
