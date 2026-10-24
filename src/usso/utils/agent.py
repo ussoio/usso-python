@@ -40,7 +40,7 @@ def kid_from_verify_key(verify_key: str | bytes) -> str:
         pem_bytes = verify_key
     else:
         text = verify_key.strip()
-        if text.startswith(("\"", "'")) and text.endswith(text[:1]):
+        if text.startswith(('"', "'")) and text.endswith(text[:1]):
             text = text[1:-1].strip()
         text = text.replace("\\n", "\n")
         pem_bytes = text.encode()
@@ -169,3 +169,106 @@ async def get_agent_token_async(jwt: str, base_url: str | None = None) -> str:
         )
         response.raise_for_status()
         return response.json().get("tokens", {}).get("access")
+
+
+def _registration_request(
+    registration_key: str,
+    *,
+    name: str,
+    scopes: list[str],
+    description: str | None,
+    private_key: str | bytes | None,
+) -> tuple[str, dict[str, object]]:
+    """Build the register body; create an Ed25519 key when none is given."""
+    if private_key is None:
+        key = AbstractKey.generate_algorithm(Algorithm.Ed25519)
+    else:
+        key = _load_agent_key(private_key)
+    body: dict[str, object] = {
+        "registration_key": registration_key,
+        "name": name,
+        "scopes": scopes,
+        "alg": str(Algorithm.Ed25519),
+        "verify_key": key.public_pem().decode(),
+    }
+    if description:
+        body["description"] = description
+    return key.private_pem().decode(), body
+
+
+def _base_url(base_url: str | None) -> str:
+    url = base_url or os.getenv("USSO_BASE_URL") or "https://usso.uln.me"
+    return url.rstrip("/")
+
+
+def register_agent(
+    registration_key: str,
+    *,
+    name: str,
+    scopes: list[str],
+    description: str | None = None,
+    private_key: str | bytes | None = None,
+    base_url: str | None = None,
+) -> dict:
+    """
+    Register this service as a USSO agent with a one-time registration key.
+
+    A user mints the key (``POST /agents/registration-keys``) and hands it to
+    the service. The service sends only its public key; the private key never
+    leaves this process. After registering, configure the client with just
+    ``AGENT_PRIVATE_KEY`` - USSO finds the agent by ``kid``.
+
+    Args:
+        registration_key: One-time key from the user.
+        name: Agent name.
+        scopes: Scopes to request; capped by the key owner's scopes.
+        description: Optional agent description.
+        private_key: Existing private key to register. A new Ed25519 key is
+            generated when omitted.
+        base_url: USSO base URL. Defaults to USSO_BASE_URL env var.
+
+    Returns:
+        dict: The created agent from USSO plus ``private_key`` (PEM). Store
+        the private key securely; USSO does not keep it.
+
+    Raises:
+        httpx.HTTPStatusError: If registration fails (e.g. the key is
+            invalid, expired or already used).
+
+    """
+    private_pem, body = _registration_request(
+        registration_key,
+        name=name,
+        scopes=scopes,
+        description=description,
+        private_key=private_key,
+    )
+    with httpx.Client(base_url=f"{_base_url(base_url)}/api/sso/v1") as client:
+        response = client.post("/agents/register", json=body)
+        response.raise_for_status()
+        return response.json() | {"private_key": private_pem}
+
+
+async def register_agent_async(
+    registration_key: str,
+    *,
+    name: str,
+    scopes: list[str],
+    description: str | None = None,
+    private_key: str | bytes | None = None,
+    base_url: str | None = None,
+) -> dict:
+    """Async version of :func:`register_agent`."""
+    private_pem, body = _registration_request(
+        registration_key,
+        name=name,
+        scopes=scopes,
+        description=description,
+        private_key=private_key,
+    )
+    async with httpx.AsyncClient(
+        base_url=f"{_base_url(base_url)}/api/sso/v1"
+    ) as client:
+        response = await client.post("/agents/register", json=body)
+        response.raise_for_status()
+        return response.json() | {"private_key": private_pem}

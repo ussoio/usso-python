@@ -367,3 +367,27 @@ async def test_get_token_missing_agent() -> None:
     )
     assert await client._get_token(scopes=["read:users"]) is None
     await client.aclose()
+
+
+async def test_get_token_agent_key_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An agent configured with only its private key is resolved by kid."""
+    monkeypatch.delenv("AGENT_ID", raising=False)
+
+    async def _fake_exchange(jwt: str) -> str:
+        return "agent-AT"
+
+    monkeypatch.setattr(agent, "get_agent_token_async", _fake_exchange)
+    client = _make_client(
+        lambda request: _response({
+            "scopes": ["read:users"],
+            "tenant_id": "t1",
+        }),
+        api_key=None,
+        agent_id=None,
+        agent_private_key=_agent_key(),
+    )
+    assert await client._get_scopes() == ["read:users"]
+    assert await client._get_token(scopes=["read:users"]) == "agent-AT"
+    await client.aclose()

@@ -359,3 +359,42 @@ def test_get_token_missing_agent() -> None:
     )
     assert client._get_token(scopes=["read:users"]) is None
     client.close()
+
+
+def test_get_token_agent_key_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An agent configured with only its private key is resolved by kid."""
+    import base64
+    import json
+
+    monkeypatch.delenv("AGENT_ID", raising=False)
+    monkeypatch.setattr(agent, "get_agent_token", lambda jwt: "agent-AT")
+    seen: list[dict] = []
+
+    def _handler(request: httpx.Request) -> httpx.Response:
+        auth = request.headers.get("Authorization", "")
+        if not auth:
+            return httpx.Response(
+                200, json={"scopes": ["read:users"], "tenant_id": "t1"}
+            )
+        jwt = auth.removeprefix("Bearer ")
+        header_b64, payload_b64, _ = jwt.split(".")
+        pad = lambda s: s + "=" * (-len(s) % 4)  # ruff: ignore[lambda-assignment]
+        seen.append({
+            "header": json.loads(base64.urlsafe_b64decode(pad(header_b64))),
+            "payload": json.loads(base64.urlsafe_b64decode(pad(payload_b64))),
+        })
+        return httpx.Response(
+            200, json={"scopes": ["read:users"], "tenant_id": "t1"}
+        )
+
+    client = _make_client(
+        _handler,
+        api_key=None,
+        agent_id=None,
+        agent_private_key=_agent_key(),
+    )
+    assert client._get_token(scopes=["read:users"]) == "agent-AT"
+    assert seen
+    assert seen[0]["header"]["kid"]
+    assert "iss" not in seen[0]["payload"]
+    client.close()
