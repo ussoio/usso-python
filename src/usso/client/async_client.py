@@ -305,7 +305,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
     @cached(ttl=600)
     async def _get_agent(self) -> dict:
         """Get the agent token scopes."""
-        if not (self.agent_id and self.agent_private_key):
+        if not self.agent_private_key:
             return {}
 
         jwt = agent.generate_agent_jwt(
@@ -336,7 +336,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
         if self.api_key:
             api_key_response = await self._get_api_key()
             return api_key_response.get("scopes", [])
-        if self.agent_id and self.agent_private_key:
+        if self.agent_private_key:
             agent_response = await self._get_agent()
             return agent_response.get("scopes", [])
         if self.refresh_token:
@@ -367,7 +367,7 @@ class AsyncUssoClient(httpx.AsyncClient, BaseUssoClient):
                 subset_scope=scope, user_scopes=await self._get_scopes()
             ):
                 raise PermissionDenied(detail=f"Scope {scope} is not allowed")
-        if not (self.agent_id and self.agent_private_key):
+        if not self.agent_private_key:
             return None
 
         return await self.use_agent_token(scopes=scopes, aud=aud)

@@ -313,7 +313,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
 
     def _get_agent(self) -> dict:
         """Get the agent token scopes."""
-        if not (self.agent_id and self.agent_private_key):
+        if not self.agent_private_key:
             return {}
 
         # Important: use `self.post` so tests can intercept via MockTransport.
@@ -344,7 +344,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
         if self.api_key:
             api_key_response = self._get_api_key()
             return api_key_response.get("scopes", [])
-        if self.agent_id and self.agent_private_key:
+        if self.agent_private_key:
             agent_response = self._get_agent()
             return agent_response.get("scopes", [])
         if self.refresh_token:
@@ -376,7 +376,7 @@ class UssoClient(httpx.Client, BaseUssoClient):
             ):
                 raise PermissionDenied(detail=f"Scope {scope} is not allowed")
 
-        if not (self.agent_id and self.agent_private_key):
+        if not self.agent_private_key:
             return None
 
         return self.use_agent_token(scopes=scopes, aud=aud)
