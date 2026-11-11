@@ -31,7 +31,7 @@ class UserData(BaseModel):
     Attributes:
         iss: Issuer claim (JWT standard).
         sub: Subject claim (JWT standard) - typically the user ID.
-        aud: Audience claim (JWT standard).
+        aud: Audience claim (JWT standard); a string or a list of strings.
         iat: Issued at timestamp (JWT standard).
         nbf: Not before timestamp (JWT standard).
         exp: Expiration timestamp (JWT standard).
@@ -52,7 +52,7 @@ class UserData(BaseModel):
     # JWT standard claims
     iss: str | None = None
     sub: str | None = None
-    aud: str | None = None
+    aud: str | list[str] | None = None
     iat: int | None = None
     nbf: int | None = None
     exp: int | None = None
@@ -76,7 +76,7 @@ class UserData(BaseModel):
         *,
         iss: str | None = None,
         sub: str | None = None,
-        aud: str | None = None,
+        aud: str | list[str] | None = None,
         iat: int | None = None,
         nbf: int | None = None,
         exp: int | None = None,
