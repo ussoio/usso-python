@@ -32,7 +32,7 @@ def fetch_api_key_data(api_key_verify_url: str, api_key: str) -> UserData:
         response = httpx.post(
             api_key_verify_url,
             json={"api_key": api_key},
-            proxy=os.getenv("PROXY"),
+            proxy=os.getenv("PROXY") or None,
         )
         response.raise_for_status()
         return UserData(**response.json())
@@ -59,7 +59,9 @@ async def fetch_api_key_data_async(
 
     """
     try:
-        async with httpx.AsyncClient(proxy=os.getenv("PROXY")) as client:
+        async with httpx.AsyncClient(
+            proxy=os.getenv("PROXY") or None
+        ) as client:
             response = await client.post(
                 api_key_verify_url,
                 json={"api_key": api_key},
